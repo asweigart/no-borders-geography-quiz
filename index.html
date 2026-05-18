@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>No Borders Geography Quiz</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #050912;
+    color: #e8eef8;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #globe { display: block; width: 100vw; height: 100vh; cursor: grab; touch-action: none; }
+  #globe.dragging { cursor: grabbing; }
+  #globe.info-mode { cursor: crosshair; }
+
+  #hud {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    z-index: 10; pointer-events: none;
+  }
+  #prompt-card {
+    background: rgba(8, 14, 28, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 14px 28px;
+    min-width: 260px;
+    max-width: 90vw;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    transition: border-color 0.2s;
+  }
+  #prompt-card.revealing { border-color: rgba(255, 213, 74, 0.6); }
+  #prompt-card.info { border-color: rgba(120, 180, 255, 0.4); }
+  #prompt-label {
+    font-size: 11px; opacity: 0.55; text-transform: uppercase;
+    letter-spacing: 1.5px; margin-bottom: 6px;
+  }
+  #prompt-name { font-size: 22px; font-weight: 600; line-height: 1.2; min-height: 26px; }
+  #prompt-meta { font-size: 13px; opacity: 0.7; margin-top: 4px; min-height: 18px; }
+
+  #settings-btn {
+    position: fixed; top: 20px; right: 20px; z-index: 20;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(8, 14, 28, 0.85);
+    color: #e8eef8;
+    border: 1px solid rgba(255,255,255,0.08);
+    cursor: pointer;
+    font-size: 22px;
+    line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: background 0.15s;
+  }
+  #settings-btn:hover { background: rgba(40, 60, 100, 0.9); }
+
+  #help-hint {
+    position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+    z-index: 10; pointer-events: none;
+    font-size: 11px; opacity: 0.45; letter-spacing: 0.5px;
+    text-align: center;
+  }
+
+  #settings-panel {
+    position: fixed; top: 0; right: 0; height: 100vh; width: 360px; max-width: 90vw;
+    background: rgba(5, 10, 22, 0.96);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-left: 1px solid rgba(255,255,255,0.08);
+    padding: 20px 24px;
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 0.28s ease;
+    z-index: 30;
+  }
+  #settings-panel.open { transform: translateX(0); }
+
+  .settings-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px;
+  }
+  .settings-header h2 { margin: 0; font-size: 18px; font-weight: 600; }
+  #close-settings {
+    background: none; border: none; color: #e8eef8;
+    font-size: 28px; cursor: pointer; line-height: 1; padding: 0 4px;
+  }
+
+  section.group { margin-bottom: 22px; }
+  section.group > .group-label {
+    display: block; font-size: 11px; opacity: 0.55;
+    text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px;
+  }
+
+  select, .mode-tab {
+    width: 100%; padding: 9px 10px; font-size: 14px;
+    background: rgba(255,255,255,0.04);
+    color: #e8eef8;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 7px;
+    font-family: inherit;
+  }
+  select { cursor: pointer; }
+
+  .mode-tabs { display: flex; gap: 6px; }
+  .mode-tab { cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+  .mode-tab:hover { background: rgba(255,255,255,0.08); }
+  .mode-tab.active {
+    background: rgba(80, 130, 230, 0.25);
+    border-color: rgba(80, 130, 230, 0.7);
+  }
+
+  .master-toggle {
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer; padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 10px;
+    font-size: 14px; font-weight: 600;
+  }
+
+  .continent { margin-bottom: 4px; }
+  .continent-header {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 0;
+  }
+  .continent-toggle {
+    background: none; border: none; color: #aab4c8;
+    cursor: pointer; width: 18px; padding: 0;
+    font-size: 11px;
+  }
+  .continent-label {
+    flex: 1; display: flex; align-items: center; gap: 8px;
+    cursor: pointer; font-size: 14px;
+  }
+  .subregion-list { margin-left: 26px; display: none; padding-bottom: 4px; }
+  .continent.expanded .subregion-list { display: block; }
+  .subregion {
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer; padding: 3px 0;
+    font-size: 13px; opacity: 0.9;
+  }
+
+  input[type="checkbox"] {
+    accent-color: #5a8be6;
+    width: 15px; height: 15px;
+    cursor: pointer;
+  }
+
+  #loading {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: #050912;
+    z-index: 100;
+    font-size: 14px; opacity: 0.7;
+  }
+</style>
+</head>
+<body>
+  <div id="loading">Loading globe data…</div>
+
+  <svg id="globe"></svg>
+
+  <div id="hud">
+    <div id="prompt-card">
+      <div id="prompt-label">Click on</div>
+      <div id="prompt-name">—</div>
+      <div id="prompt-meta"></div>
+    </div>
+  </div>
+
+  <div id="help-hint">Drag to spin · Scroll to zoom · WASD / arrows to pan · Q/E or PgUp/PgDn to zoom</div>
+
+  <button id="settings-btn" aria-label="Settings" title="Settings">⚙</button>
+
+  <aside id="settings-panel" aria-hidden="true">
+    <div class="settings-header">
+      <h2>Settings</h2>
+      <button id="close-settings" aria-label="Close">×</button>
+    </div>
+
+    <section class="group">
+      <label class="group-label" for="language-select">Language</label>
+      <select id="language-select">
+        <option value="en">English</option>
+      </select>
+    </section>
+
+    <section class="group">
+      <span class="group-label">Mode</span>
+      <div class="mode-tabs">
+        <button class="mode-tab active" data-mode="countries">Countries</button>
+        <button class="mode-tab" data-mode="states">US States</button>
+        <button class="mode-tab" data-mode="info">Info</button>
+      </div>
+    </section>
+
+    <section class="group" id="filter-section">
+      <span class="group-label">Filter</span>
+      <label class="master-toggle">
+        <input type="checkbox" id="all-toggle" checked>
+        <span>All Countries</span>
+      </label>
+      <div id="continent-tree"></div>
+    </section>
+  </aside>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+  <script>
+  (async function () {
+    "use strict";
+
+    const REVEAL_MS = 1800;
+    const ROTATE_DEFAULT = [-10, -20];
+    const US_ROTATE = [98.5, -39.8];
+    const US_SCALE_MULT = 2.5;
+    const DRAG_THRESHOLD_PX = 4;
+
+    const KEY_ROTATE_DEG_PER_SEC = 75;
+    const KEY_ZOOM_PER_SEC = 1.9;
+    const WHEEL_ZOOM_SENSITIVITY = 0.0009;
+
+    const STATE_CAPITALS = {
+      "Alabama": "Montgomery", "Alaska": "Juneau", "Arizona": "Phoenix",
+      "Arkansas": "Little Rock", "California": "Sacramento", "Colorado": "Denver",
+      "Connecticut": "Hartford", "Delaware": "Dover", "Florida": "Tallahassee",
+      "Georgia": "Atlanta", "Hawaii": "Honolulu", "Idaho": "Boise",
+      "Illinois": "Springfield", "Indiana": "Indianapolis", "Iowa": "Des Moines",
+      "Kansas": "Topeka", "Kentucky": "Frankfort", "Louisiana": "Baton Rouge",
+      "Maine": "Augusta", "Maryland": "Annapolis", "Massachusetts": "Boston",
+      "Michigan": "Lansing", "Minnesota": "Saint Paul", "Mississippi": "Jackson",
+      "Missouri": "Jefferson City", "Montana": "Helena", "Nebraska": "Lincoln",
+      "Nevada": "Carson City", "New Hampshire": "Concord", "New Jersey": "Trenton",
+      "New Mexico": "Santa Fe", "New York": "Albany", "North Carolina": "Raleigh",
+      "North Dakota": "Bismarck", "Ohio": "Columbus", "Oklahoma": "Oklahoma City",
+      "Oregon": "Salem", "Pennsylvania": "Harrisburg", "Rhode Island": "Providence",
+      "South Carolina": "Columbia", "South Dakota": "Pierre", "Tennessee": "Nashville",
+      "Texas": "Austin", "Utah": "Salt Lake City", "Vermont": "Montpelier",
+      "Virginia": "Richmond", "Washington": "Olympia", "West Virginia": "Charleston",
+      "Wisconsin": "Madison", "Wyoming": "Cheyenne",
+      "District of Columbia": "Washington",
+      "Puerto Rico": "San Juan",
+      "American Samoa": "Pago Pago",
+      "Guam": "Hagåtña",
+      "Commonwealth of the Northern Mariana Islands": "Saipan",
+      "United States Virgin Islands": "Charlotte Amalie"
+    };
+
+    // ---- SVG setup ----
+    const svgEl = document.getElementById("globe");
+    const svg = d3.select(svgEl);
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    svg.attr("width", width).attr("height", height);
+
+    const initialScale = Math.min(width, height) * 0.44;
+    const projection = d3.geoOrthographic()
+      .scale(initialScale)
+      .translate([width / 2, height / 2])
+      .rotate(ROTATE_DEFAULT)
+      .clipAngle(90);
+    const path = d3.geoPath(projection);
+
+    const oceanPath = svg.append("path")
+      .datum({ type: "Sphere" })
+      .attr("fill", "#16335a")
+      .attr("stroke", "rgba(120,170,230,0.25)")
+      .attr("stroke-width", 0.6);
+
+    const graticulePath = svg.append("path")
+      .datum(d3.geoGraticule10())
+      .attr("fill", "none")
+      .attr("stroke", "rgba(255,255,255,0.06)")
+      .attr("stroke-width", 0.5);
+
+    const landPath = svg.append("path")
+      .attr("fill", "#3d6b48")
+      .attr("stroke", "none");
+
+    const lakesPath = svg.append("path")
+      .attr("fill", "#16335a")
+      .attr("stroke", "rgba(120,170,230,0.3)")
+      .attr("stroke-width", 0.4);
+
+    const riversPath = svg.append("path")
+      .attr("fill", "none")
+      .attr("stroke", "rgba(120,170,230,0.55)")
+      .attr("stroke-width", 0.6)
+      .attr("stroke-linejoin", "round")
+      .attr("stroke-linecap", "round");
+
+    const revealLayer = svg.append("g").attr("id", "reveal-layer");
+
+    const reticle = svg.append("g")
+      .attr("id", "reticle")
+      .style("display", "none")
+      .style("pointer-events", "none");
+    reticle.append("circle").attr("r", 16)
+      .attr("fill", "none").attr("stroke", "rgba(255,255,255,0.65)").attr("stroke-width", 1.5);
+    reticle.append("circle").attr("r", 1.5).attr("fill", "rgba(255,255,255,0.9)");
+    [[-26, -18], [18, 26]].forEach(([a, b]) => {
+      reticle.append("line").attr("x1", a).attr("x2", b).attr("y1", 0).attr("y2", 0)
+        .attr("stroke", "rgba(255,255,255,0.65)").attr("stroke-width", 1.5);
+      reticle.append("line").attr("y1", a).attr("y2", b).attr("x1", 0).attr("x2", 0)
+        .attr("stroke", "rgba(255,255,255,0.65)").attr("stroke-width", 1.5);
+    });
+
+    function positionReticle() {
+      reticle.attr("transform", `translate(${width / 2},${height / 2})`);
+    }
+    positionReticle();
+
+    function render() {
+      oceanPath.attr("d", path);
+      graticulePath.attr("d", path);
+      landPath.attr("d", path);
+      lakesPath.attr("d", path);
+      riversPath.attr("d", path);
+      revealLayer.selectAll("path").attr("d", path);
+    }
+
+    // ---- Data load ----
+    const [worldTopo, statesTopo, countriesMeta, lakesGeo, riversGeo] = await Promise.all([
+      d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json"),
+      d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json"),
+      d3.json("https://cdn.jsdelivr.net/npm/world-countries@5.1.0/dist/countries.json"),
+      d3.json("https://cdn.jsdelivr.net/gh/martynafford/natural-earth-geojson@master/50m/physical/ne_50m_lakes.json"),
+      d3.json("https://cdn.jsdelivr.net/gh/martynafford/natural-earth-geojson@master/50m/physical/ne_50m_rivers_lake_centerlines.json"),
+    ]);
+
+    const metaById = new Map();
+    for (const m of countriesMeta) {
+      metaById.set(parseInt(m.ccn3, 10), m);
+    }
+
+    function deriveContinent(meta) {
+      if (!meta) return "Other";
+      if (meta.region === "Americas") {
+        return meta.subregion === "South America" ? "South America" : "North America";
+      }
+      if (meta.region === "Antarctic") return "Antarctica";
+      return meta.region || "Other";
+    }
+
+    const countryFC = topojson.feature(worldTopo, worldTopo.objects.countries);
+    const countryFeatures = countryFC.features.map(f => {
+      const meta = metaById.get(+f.id);
+      const continent = deriveContinent(meta);
+      f.properties = {
+        ...f.properties,
+        continent,
+        subregion: (meta && meta.subregion) || continent,
+        displayName: (meta && meta.name && meta.name.common) || f.properties.name,
+        flag: (meta && meta.flag) || "🏳",
+        capital: (meta && meta.capital && meta.capital[0]) || "",
+      };
+      return f;
+    });
+
+    const landGeo = topojson.merge(worldTopo, worldTopo.objects.countries.geometries);
+    landPath.datum(landGeo);
+    lakesPath.datum(lakesGeo);
+    riversPath.datum(riversGeo);
+
+    const stateFC = topojson.feature(statesTopo, statesTopo.objects.states);
+    const stateFeatures = stateFC.features.map(f => {
+      const name = f.properties.name;
+      f.properties = {
+        ...f.properties,
+        displayName: name,
+        flag: "🇺🇸",
+        capital: STATE_CAPITALS[name] || "",
+      };
+      return f;
+    });
+
+    render();
+    document.getElementById("loading").remove();
+
+    // ---- Interaction: drag (rotate) + click ----
+    let pressStart = null;
+    let pressMoved = false;
+
+    const drag = d3.drag()
+      .on("start", (event) => {
+        pressStart = [event.x, event.y];
+        pressMoved = false;
+        svgEl.classList.add("dragging");
+      })
+      .on("drag", (event) => {
+        const k = 70 / projection.scale();
+        const r = projection.rotate();
+        const newLat = Math.max(-90, Math.min(90, r[1] - event.dy * k));
+        projection.rotate([r[0] + event.dx * k, newLat]);
+        render();
+        if (mode === "info") updateInfoFromCenter();
+        if (!pressMoved && pressStart) {
+          if (Math.hypot(event.x - pressStart[0], event.y - pressStart[1]) > DRAG_THRESHOLD_PX) {
+            pressMoved = true;
+          }
+        }
+      })
+      .on("end", (event) => {
+        svgEl.classList.remove("dragging");
+        if (!pressMoved && pressStart && mode !== "info") {
+          handleClick(pressStart[0], pressStart[1]);
+        }
+        pressStart = null;
+      });
+    svg.call(drag);
+
+    // ---- Zoom (wheel) ----
+    function clampScale(s) {
+      const minScale = initialScale * 0.5;
+      const maxScale = initialScale * 12;
+      return Math.max(minScale, Math.min(maxScale, s));
+    }
+
+    svgEl.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      const factor = Math.exp(-event.deltaY * WHEEL_ZOOM_SENSITIVITY);
+      projection.scale(clampScale(projection.scale() * factor));
+      render();
+      if (mode === "info") updateInfoFromCenter();
+    }, { passive: false });
+
+    // ---- Quiz / Info state ----
+    let mode = "countries";
+    let activeSubregions = new Set();
+    let allOn = true;
+    let pool = [];
+    let bag = [];
+    let target = null;
+    let revealing = false;
+
+    const promptCard = document.getElementById("prompt-card");
+    const promptLabel = document.getElementById("prompt-label");
+    const promptName = document.getElementById("prompt-name");
+    const promptMeta = document.getElementById("prompt-meta");
+
+    function quizFeatures() {
+      return mode === "states" ? stateFeatures : countryFeatures;
+    }
+
+    function rebuildPool() {
+      if (mode === "states") {
+        pool = stateFeatures.slice();
+      } else if (allOn) {
+        pool = countryFeatures.slice();
+      } else {
+        pool = countryFeatures.filter(f =>
+          activeSubregions.has(`${f.properties.continent}::${f.properties.subregion}`)
+        );
+      }
+      bag = [];
+      target = null;
+      nextTarget();
+    }
+
+    function nextTarget() {
+      if (mode === "info") return;
+      if (pool.length === 0) {
+        target = null;
+        promptLabel.textContent = "—";
+        promptName.textContent = "No regions selected";
+        promptMeta.textContent = "Open settings to enable some.";
+        return;
+      }
+      if (bag.length === 0) {
+        bag = pool.slice();
+        for (let i = bag.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [bag[i], bag[j]] = [bag[j], bag[i]];
+        }
+        if (target && bag.length > 1 && bag[0] === target) {
+          [bag[0], bag[1]] = [bag[1], bag[0]];
+        }
+      }
+      target = bag.shift();
+      showInfo("Click on", target);
+    }
+
+    function showInfo(labelText, feature) {
+      promptLabel.textContent = labelText;
+      const flag = feature.properties.flag || "";
+      promptName.textContent = `${flag} ${feature.properties.displayName}`.trim();
+      const cap = feature.properties.capital;
+      promptMeta.textContent = cap ? `Capital: ${cap}` : "";
+    }
+
+    function showEmpty(labelText, hint) {
+      promptLabel.textContent = labelText;
+      promptName.textContent = hint || "—";
+      promptMeta.textContent = "";
+    }
+
+    function handleClick(svgX, svgY) {
+      if (revealing || !target) return;
+      const coords = projection.invert([svgX, svgY]);
+      if (!coords || isNaN(coords[0]) || isNaN(coords[1])) return;
+      const features = quizFeatures();
+      const hit = features.find(f => d3.geoContains(f, coords));
+      if (!hit) return;
+
+      revealing = true;
+      promptCard.classList.add("revealing");
+      revealLayer.selectAll("path").remove();
+      revealLayer.append("path")
+        .datum(hit)
+        .attr("d", path)
+        .attr("fill", "rgba(255, 213, 74, 0.28)")
+        .attr("stroke", "#ffd54a")
+        .attr("stroke-width", 1.5)
+        .attr("stroke-linejoin", "round");
+      showInfo("You clicked", hit);
+
+      setTimeout(() => {
+        revealLayer.selectAll("path").remove();
+        promptCard.classList.remove("revealing");
+        revealing = false;
+        nextTarget();
+      }, REVEAL_MS);
+    }
+
+    // ---- Info mode (hover / reticle) ----
+    let infoPos = null;          // last pointer position over the svg, or null
+    let pointerOverSvg = false;
+
+    function infoQueryPos() {
+      if (infoPos && pointerOverSvg) return infoPos;
+      return [width / 2, height / 2];
+    }
+
+    function updateInfoAt(pos) {
+      if (mode !== "info") return;
+      const coords = projection.invert(pos);
+      if (!coords || isNaN(coords[0]) || isNaN(coords[1])) {
+        showEmpty("Info", "Move over a country");
+        return;
+      }
+      const hit = countryFeatures.find(f => d3.geoContains(f, coords));
+      if (hit) {
+        showInfo("Info", hit);
+      } else {
+        showEmpty("Info", "Open ocean");
+      }
+    }
+
+    function updateInfo() { updateInfoAt(infoQueryPos()); }
+    function updateInfoFromCenter() { if (mode === "info") updateInfoAt(infoQueryPos()); }
+
+    svgEl.addEventListener("pointermove", (event) => {
+      if (mode !== "info") return;
+      if (event.pointerType === "touch") return; // touch = use reticle/center
+      const [x, y] = d3.pointer(event, svgEl);
+      infoPos = [x, y];
+      pointerOverSvg = true;
+      updateInfo();
+    });
+    svgEl.addEventListener("pointerenter", (event) => {
+      if (event.pointerType === "touch") return;
+      pointerOverSvg = true;
+    });
+    svgEl.addEventListener("pointerleave", (event) => {
+      if (event.pointerType === "touch") return;
+      pointerOverSvg = false;
+      if (mode === "info") updateInfo();
+    });
+
+    // ---- Keyboard (continuous) ----
+    const KEY_MAP = {
+      "w": "up", "W": "up", "ArrowUp": "up",
+      "s": "down", "S": "down", "ArrowDown": "down",
+      "a": "left", "A": "left", "ArrowLeft": "left",
+      "d": "right", "D": "right", "ArrowRight": "right",
+      "q": "zoomin", "Q": "zoomin", "PageUp": "zoomin",
+      "e": "zoomout", "E": "zoomout", "PageDown": "zoomout",
+    };
+    const heldActions = new Set();
+    let animActive = false;
+    let lastFrameT = 0;
+
+    function isTypingTarget(t) {
+      if (!t) return false;
+      const tag = t.tagName;
+      return tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA" || t.isContentEditable;
+    }
+
+    window.addEventListener("keydown", (e) => {
+      if (isTypingTarget(e.target)) return;
+      const action = KEY_MAP[e.key];
+      if (!action) return;
+      e.preventDefault();
+      if (!heldActions.has(action)) {
+        heldActions.add(action);
+        if (!animActive) {
+          animActive = true;
+          lastFrameT = 0;
+          requestAnimationFrame(keyFrame);
+        }
+      }
+    });
+    window.addEventListener("keyup", (e) => {
+      const action = KEY_MAP[e.key];
+      if (action) heldActions.delete(action);
+    });
+    window.addEventListener("blur", () => heldActions.clear());
+
+    function keyFrame(t) {
+      if (heldActions.size === 0) {
+        animActive = false;
+        lastFrameT = 0;
+        return;
+      }
+      if (!lastFrameT) lastFrameT = t;
+      const dt = Math.min(0.1, (t - lastFrameT) / 1000);
+      lastFrameT = t;
+
+      // Rotation: deg/sec scaled down as we zoom in (smaller features → smaller motion)
+      const rotDeg = KEY_ROTATE_DEG_PER_SEC * dt * (initialScale / projection.scale());
+      const r = projection.rotate();
+      let dλ = 0, dφ = 0;
+      if (heldActions.has("left")) dλ -= rotDeg;
+      if (heldActions.has("right")) dλ += rotDeg;
+      if (heldActions.has("up")) dφ += rotDeg;
+      if (heldActions.has("down")) dφ -= rotDeg;
+      if (dλ || dφ) {
+        projection.rotate([r[0] + dλ, Math.max(-90, Math.min(90, r[1] + dφ))]);
+      }
+
+      // Zoom
+      let zf = 1;
+      if (heldActions.has("zoomin")) zf *= Math.pow(KEY_ZOOM_PER_SEC, dt);
+      if (heldActions.has("zoomout")) zf /= Math.pow(KEY_ZOOM_PER_SEC, dt);
+      if (zf !== 1) projection.scale(clampScale(projection.scale() * zf));
+
+      render();
+      if (mode === "info") updateInfo();
+      requestAnimationFrame(keyFrame);
+    }
+
+    // ---- Settings panel ----
+    const panel = document.getElementById("settings-panel");
+    document.getElementById("settings-btn").addEventListener("click", () => {
+      const open = panel.classList.toggle("open");
+      panel.setAttribute("aria-hidden", open ? "false" : "true");
+    });
+    document.getElementById("close-settings").addEventListener("click", () => {
+      panel.classList.remove("open");
+      panel.setAttribute("aria-hidden", "true");
+    });
+
+    // ---- Build continent tree ----
+    const taxonomy = {};
+    for (const f of countryFeatures) {
+      const c = f.properties.continent;
+      const s = f.properties.subregion;
+      if (!taxonomy[c]) taxonomy[c] = new Set();
+      taxonomy[c].add(s);
+    }
+
+    const CONTINENT_ORDER = [
+      "Africa", "Antarctica", "Asia", "Europe",
+      "North America", "Oceania", "South America"
+    ];
+
+    const tree = document.getElementById("continent-tree");
+    for (const continent of CONTINENT_ORDER) {
+      if (!taxonomy[continent]) continue;
+      const div = document.createElement("div");
+      div.className = "continent";
+
+      const header = document.createElement("div");
+      header.className = "continent-header";
+
+      const expandBtn = document.createElement("button");
+      expandBtn.className = "continent-toggle";
+      expandBtn.textContent = "▸";
+      expandBtn.addEventListener("click", () => {
+        const expanded = div.classList.toggle("expanded");
+        expandBtn.textContent = expanded ? "▾" : "▸";
+      });
+      header.appendChild(expandBtn);
+
+      const cLabel = document.createElement("label");
+      cLabel.className = "continent-label";
+      const cBox = document.createElement("input");
+      cBox.type = "checkbox";
+      cBox.checked = true;
+      cBox.dataset.continent = continent;
+      const cText = document.createElement("span");
+      cText.textContent = continent;
+      cLabel.appendChild(cBox);
+      cLabel.appendChild(cText);
+      header.appendChild(cLabel);
+      div.appendChild(header);
+
+      const sublist = document.createElement("div");
+      sublist.className = "subregion-list";
+      const subs = [...taxonomy[continent]].sort();
+      for (const sub of subs) {
+        const subLabel = document.createElement("label");
+        subLabel.className = "subregion";
+        const subBox = document.createElement("input");
+        subBox.type = "checkbox";
+        subBox.checked = true;
+        subBox.dataset.continent = continent;
+        subBox.dataset.subregion = sub;
+        const subText = document.createElement("span");
+        subText.textContent = sub;
+        subLabel.appendChild(subBox);
+        subLabel.appendChild(subText);
+        sublist.appendChild(subLabel);
+        activeSubregions.add(`${continent}::${sub}`);
+        subBox.addEventListener("change", syncFromTree);
+      }
+      div.appendChild(sublist);
+      tree.appendChild(div);
+
+      cBox.addEventListener("change", (e) => {
+        sublist.querySelectorAll("input[type=checkbox]").forEach(child => {
+          child.checked = e.target.checked;
+        });
+        syncFromTree();
+      });
+    }
+
+    function syncFromTree() {
+      activeSubregions = new Set();
+      tree.querySelectorAll("input[data-subregion]").forEach(cb => {
+        if (cb.checked) {
+          activeSubregions.add(`${cb.dataset.continent}::${cb.dataset.subregion}`);
+        }
+      });
+      tree.querySelectorAll(".continent").forEach(div => {
+        const contBox = div.querySelector("input[data-continent]:not([data-subregion])");
+        const childBoxes = div.querySelectorAll("input[data-subregion]");
+        const checked = [...childBoxes].filter(c => c.checked).length;
+        contBox.checked = checked === childBoxes.length;
+        contBox.indeterminate = checked > 0 && checked < childBoxes.length;
+      });
+      const allBox = document.getElementById("all-toggle");
+      const allSubs = tree.querySelectorAll("input[data-subregion]");
+      const checkedSubs = tree.querySelectorAll("input[data-subregion]:checked");
+      allBox.checked = checkedSubs.length === allSubs.length;
+      allBox.indeterminate = checkedSubs.length > 0 && checkedSubs.length < allSubs.length;
+      allOn = checkedSubs.length === allSubs.length;
+      if (mode !== "info") rebuildPool();
+    }
+
+    document.getElementById("all-toggle").addEventListener("change", (e) => {
+      tree.querySelectorAll("input[type=checkbox]").forEach(cb => {
+        cb.checked = e.target.checked;
+        cb.indeterminate = false;
+      });
+      syncFromTree();
+    });
+
+    // ---- Mode tabs ----
+    document.querySelectorAll(".mode-tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        const newMode = tab.dataset.mode;
+        if (newMode === mode) return;
+        document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        const previousMode = mode;
+        mode = newMode;
+        applyModeUI();
+        if (mode === "info") {
+          enterInfoMode(previousMode);
+        } else {
+          exitInfoMode();
+          if (mode === "states") {
+            animateTo(US_ROTATE, initialScale * US_SCALE_MULT);
+          } else if (previousMode === "states") {
+            animateTo(ROTATE_DEFAULT, initialScale);
+          }
+          rebuildPool();
+        }
+      });
+    });
+
+    function applyModeUI() {
+      document.getElementById("filter-section").style.display =
+        mode === "countries" ? "block" : "none";
+      svgEl.classList.toggle("info-mode", mode === "info");
+      reticle.style("display", mode === "info" ? null : "none");
+      promptCard.classList.toggle("info", mode === "info");
+    }
+
+    function enterInfoMode(prevMode) {
+      revealLayer.selectAll("path").remove();
+      promptCard.classList.remove("revealing");
+      revealing = false;
+      target = null;
+      if (prevMode === "states") animateTo(ROTATE_DEFAULT, initialScale);
+      updateInfo();
+    }
+
+    function exitInfoMode() {
+      // nothing to clean up beyond UI; rebuildPool handled by caller
+    }
+
+    function animateTo(targetRotate, targetScale) {
+      const startRotate = projection.rotate();
+      const startScale = projection.scale();
+      let lonDiff = targetRotate[0] - startRotate[0];
+      while (lonDiff > 180) lonDiff -= 360;
+      while (lonDiff < -180) lonDiff += 360;
+      const latDiff = targetRotate[1] - startRotate[1];
+      const scaleDiff = targetScale - startScale;
+      const duration = 800;
+      const t0 = performance.now();
+      function step(now) {
+        const t = Math.min(1, (now - t0) / duration);
+        const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        projection.rotate([startRotate[0] + lonDiff * e, startRotate[1] + latDiff * e]);
+        projection.scale(startScale + scaleDiff * e);
+        render();
+        if (mode === "info") updateInfo();
+        if (t < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    // ---- Resize ----
+    window.addEventListener("resize", () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      svg.attr("width", width).attr("height", height);
+      projection.translate([width / 2, height / 2]);
+      positionReticle();
+      render();
+      if (mode === "info") updateInfo();
+    });
+
+    // ---- Boot ----
+    applyModeUI();
+    rebuildPool();
+  })().catch(err => {
+    console.error(err);
+    const loading = document.getElementById("loading");
+    if (loading) loading.textContent = "Failed to load data. Check your network and reload.";
+  });
+  </script>
+</body>
+</html>
