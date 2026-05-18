@@ -37,6 +37,7 @@
   }
   #prompt-card.revealing { border-color: rgba(255, 213, 74, 0.6); }
   #prompt-card.info { border-color: rgba(120, 180, 255, 0.4); }
+  #prompt-card.tour { border-color: rgba(120, 220, 255, 0.5); }
   #prompt-label {
     font-size: 11px; opacity: 0.55; text-transform: uppercase;
     letter-spacing: 1.5px; margin-bottom: 6px;
@@ -97,22 +98,36 @@
     text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px;
   }
 
-  select, .mode-tab {
+  select {
     width: 100%; padding: 9px 10px; font-size: 14px;
     background: rgba(255,255,255,0.04);
     color: #e8eef8;
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 7px;
     font-family: inherit;
+    cursor: pointer;
   }
-  select { cursor: pointer; }
 
-  .mode-tabs { display: flex; gap: 6px; }
-  .mode-tab { cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+  .mode-tabs { display: flex; flex-direction: column; gap: 6px; }
+  .mode-row { display: flex; gap: 6px; }
+  .mode-tab {
+    flex: 1; padding: 9px 10px; font-size: 14px;
+    background: rgba(255,255,255,0.04);
+    color: #e8eef8;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 7px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
   .mode-tab:hover { background: rgba(255,255,255,0.08); }
   .mode-tab.active {
     background: rgba(80, 130, 230, 0.25);
     border-color: rgba(80, 130, 230, 0.7);
+  }
+  .mode-tab.active[data-action="tour"] {
+    background: rgba(120, 220, 255, 0.18);
+    border-color: rgba(120, 220, 255, 0.6);
   }
 
   .master-toggle {
@@ -149,6 +164,57 @@
     accent-color: #5a8be6;
     width: 15px; height: 15px;
     cursor: pointer;
+  }
+
+  .find-wrapper { position: relative; }
+  #find-input {
+    width: 100%; padding: 9px 10px; font-size: 14px;
+    background: rgba(255,255,255,0.04);
+    color: #e8eef8;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 7px;
+    font-family: inherit;
+    outline: none;
+  }
+  #find-input:focus { border-color: rgba(80, 130, 230, 0.7); }
+  #find-results {
+    list-style: none; margin: 4px 0 0; padding: 4px 0;
+    background: rgba(15, 22, 38, 0.98);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 7px;
+    max-height: 300px; overflow-y: auto;
+    position: absolute; left: 0; right: 0; top: 100%;
+    z-index: 5;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  #find-results li {
+    padding: 7px 10px; cursor: pointer;
+    font-size: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  #find-results li.active { background: rgba(80, 130, 230, 0.22); }
+  #find-results li:hover { background: rgba(80, 130, 230, 0.16); }
+  #find-results .type-badge {
+    font-size: 10px; opacity: 0.45; text-transform: uppercase;
+    margin-left: auto; letter-spacing: 0.5px;
+  }
+  #find-results .find-name { flex: 1; }
+
+  .color-input {
+    width: 100%; height: 40px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 7px;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  .control-toggle {
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer; padding: 6px 0;
+    font-size: 14px;
   }
 
   #loading {
@@ -191,11 +257,22 @@
     </section>
 
     <section class="group">
+      <label class="group-label" for="find-input">Find</label>
+      <div class="find-wrapper">
+        <input type="text" id="find-input" placeholder="Search countries or states…" autocomplete="off" spellcheck="false">
+        <ul id="find-results" hidden></ul>
+      </div>
+    </section>
+
+    <section class="group">
       <span class="group-label">Mode</span>
       <div class="mode-tabs">
-        <button class="mode-tab active" data-mode="countries">Countries</button>
-        <button class="mode-tab" data-mode="states">US States</button>
-        <button class="mode-tab" data-mode="info">Info</button>
+        <button class="mode-tab" data-action="info">Info</button>
+        <button class="mode-tab" data-action="tour">Tour</button>
+        <div class="mode-row">
+          <button class="mode-tab active" data-action="countries">Countries</button>
+          <button class="mode-tab" data-action="states">US States</button>
+        </div>
       </div>
     </section>
 
@@ -206,6 +283,23 @@
         <span>All Countries</span>
       </label>
       <div id="continent-tree"></div>
+    </section>
+
+    <section class="group">
+      <label class="group-label" for="bg-color">Background Color</label>
+      <input type="color" id="bg-color" value="#050912" class="color-input">
+    </section>
+
+    <section class="group">
+      <span class="group-label">Controls</span>
+      <label class="control-toggle">
+        <input type="checkbox" id="invert-h" checked>
+        <span>Invert Horizontal</span>
+      </label>
+      <label class="control-toggle">
+        <input type="checkbox" id="invert-v" checked>
+        <span>Invert Vertical</span>
+      </label>
     </section>
   </aside>
 
@@ -296,19 +390,16 @@
 
     const revealLayer = svg.append("g").attr("id", "reveal-layer");
 
+    const IS_TOUCH = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+
     const reticle = svg.append("g")
       .attr("id", "reticle")
       .style("display", "none")
       .style("pointer-events", "none");
-    reticle.append("circle").attr("r", 16)
-      .attr("fill", "none").attr("stroke", "rgba(255,255,255,0.65)").attr("stroke-width", 1.5);
-    reticle.append("circle").attr("r", 1.5).attr("fill", "rgba(255,255,255,0.9)");
-    [[-26, -18], [18, 26]].forEach(([a, b]) => {
-      reticle.append("line").attr("x1", a).attr("x2", b).attr("y1", 0).attr("y2", 0)
-        .attr("stroke", "rgba(255,255,255,0.65)").attr("stroke-width", 1.5);
-      reticle.append("line").attr("y1", a).attr("y2", b).attr("x1", 0).attr("x2", 0)
-        .attr("stroke", "rgba(255,255,255,0.65)").attr("stroke-width", 1.5);
-    });
+    reticle.append("line").attr("x1", -10).attr("x2", 10).attr("y1", 0).attr("y2", 0)
+      .attr("stroke", "rgba(255,255,255,0.8)").attr("stroke-width", 1.5);
+    reticle.append("line").attr("x1", 0).attr("x2", 0).attr("y1", -10).attr("y2", 10)
+      .attr("stroke", "rgba(255,255,255,0.8)").attr("stroke-width", 1.5);
 
     function positionReticle() {
       reticle.attr("transform", `translate(${width / 2},${height / 2})`);
@@ -398,7 +489,7 @@
         const newLat = Math.max(-90, Math.min(90, r[1] - event.dy * k));
         projection.rotate([r[0] + event.dx * k, newLat]);
         render();
-        if (mode === "info") updateInfoFromCenter();
+        if (mode === "info" && IS_TOUCH) updateInfo();
         if (!pressMoved && pressStart) {
           if (Math.hypot(event.x - pressStart[0], event.y - pressStart[1]) > DRAG_THRESHOLD_PX) {
             pressMoved = true;
@@ -426,11 +517,12 @@
       const factor = Math.exp(-event.deltaY * WHEEL_ZOOM_SENSITIVITY);
       projection.scale(clampScale(projection.scale() * factor));
       render();
-      if (mode === "info") updateInfoFromCenter();
+      if (mode === "info" && IS_TOUCH) updateInfo();
     }, { passive: false });
 
-    // ---- Quiz / Info state ----
-    let mode = "countries";
+    // ---- Quiz / Info / Tour state ----
+    let mode = "quiz";              // "quiz" | "info" | "tour"
+    let dataset = "countries";      // "countries" | "states"
     let activeSubregions = new Set();
     let allOn = true;
     let pool = [];
@@ -438,32 +530,36 @@
     let target = null;
     let revealing = false;
 
+    const TOUR_INTERVAL_MS = 4000;
+    let tourTimer = null;
+    let tourBag = [];
+
     const promptCard = document.getElementById("prompt-card");
     const promptLabel = document.getElementById("prompt-label");
     const promptName = document.getElementById("prompt-name");
     const promptMeta = document.getElementById("prompt-meta");
 
-    function quizFeatures() {
-      return mode === "states" ? stateFeatures : countryFeatures;
+    function datasetFeatures() {
+      return dataset === "states" ? stateFeatures : countryFeatures;
+    }
+
+    function filteredPool() {
+      if (dataset === "states") return stateFeatures.slice();
+      if (allOn) return countryFeatures.slice();
+      return countryFeatures.filter(f =>
+        activeSubregions.has(`${f.properties.continent}::${f.properties.subregion}`)
+      );
     }
 
     function rebuildPool() {
-      if (mode === "states") {
-        pool = stateFeatures.slice();
-      } else if (allOn) {
-        pool = countryFeatures.slice();
-      } else {
-        pool = countryFeatures.filter(f =>
-          activeSubregions.has(`${f.properties.continent}::${f.properties.subregion}`)
-        );
-      }
+      pool = filteredPool();
       bag = [];
       target = null;
       nextTarget();
     }
 
     function nextTarget() {
-      if (mode === "info") return;
+      if (mode !== "quiz") return;
       if (pool.length === 0) {
         target = null;
         promptLabel.textContent = "—";
@@ -500,11 +596,10 @@
     }
 
     function handleClick(svgX, svgY) {
-      if (revealing || !target) return;
+      if (mode !== "quiz" || revealing || !target) return;
       const coords = projection.invert([svgX, svgY]);
       if (!coords || isNaN(coords[0]) || isNaN(coords[1])) return;
-      const features = quizFeatures();
-      const hit = features.find(f => d3.geoContains(f, coords));
+      const hit = datasetFeatures().find(f => d3.geoContains(f, coords));
       if (!hit) return;
 
       revealing = true;
@@ -530,33 +625,59 @@
     // ---- Info mode (hover / reticle) ----
     let infoPos = null;          // last pointer position over the svg, or null
     let pointerOverSvg = false;
+    let lastInfoHit = null;
 
-    function infoQueryPos() {
-      if (infoPos && pointerOverSvg) return infoPos;
-      return [width / 2, height / 2];
+    function showInfoHighlight(feature) {
+      if (lastInfoHit === feature) {
+        revealLayer.selectAll("path").attr("d", path);
+        return;
+      }
+      lastInfoHit = feature;
+      revealLayer.selectAll("path").remove();
+      if (feature) {
+        revealLayer.append("path")
+          .datum(feature)
+          .attr("d", path)
+          .attr("fill", "rgba(120, 200, 255, 0.22)")
+          .attr("stroke", "#7ec8ff")
+          .attr("stroke-width", 1.5)
+          .attr("stroke-linejoin", "round");
+      }
     }
 
     function updateInfoAt(pos) {
       if (mode !== "info") return;
       const coords = projection.invert(pos);
+      const hint = IS_TOUCH ? "Move the reticle over a country" : "Hover over a country";
       if (!coords || isNaN(coords[0]) || isNaN(coords[1])) {
-        showEmpty("Info", "Move over a country");
+        showEmpty("Info", hint);
+        showInfoHighlight(null);
         return;
       }
-      const hit = countryFeatures.find(f => d3.geoContains(f, coords));
+      const hit = datasetFeatures().find(f => d3.geoContains(f, coords));
       if (hit) {
         showInfo("Info", hit);
+        showInfoHighlight(hit);
       } else {
         showEmpty("Info", "Open ocean");
+        showInfoHighlight(null);
       }
     }
 
-    function updateInfo() { updateInfoAt(infoQueryPos()); }
-    function updateInfoFromCenter() { if (mode === "info") updateInfoAt(infoQueryPos()); }
+    function updateInfo() {
+      if (mode !== "info") return;
+      if (IS_TOUCH) {
+        updateInfoAt([width / 2, height / 2]);
+      } else if (pointerOverSvg && infoPos) {
+        updateInfoAt(infoPos);
+      } else {
+        showEmpty("Info", "Hover over a country");
+      }
+    }
 
     svgEl.addEventListener("pointermove", (event) => {
       if (mode !== "info") return;
-      if (event.pointerType === "touch") return; // touch = use reticle/center
+      if (event.pointerType === "touch") return;
       const [x, y] = d3.pointer(event, svgEl);
       infoPos = [x, y];
       pointerOverSvg = true;
@@ -572,6 +693,47 @@
       if (mode === "info") updateInfo();
     });
 
+    // ---- Tour mode ----
+    function startTour() {
+      tourBag = [];
+      tourTick();
+    }
+    function stopTour() {
+      if (tourTimer) clearTimeout(tourTimer);
+      tourTimer = null;
+      revealLayer.selectAll("path").remove();
+    }
+    function tourTick() {
+      const tourPool = filteredPool();
+      if (tourPool.length === 0) {
+        revealLayer.selectAll("path").remove();
+        showEmpty("Tour", "No regions selected");
+        return;
+      }
+      if (tourBag.length === 0) {
+        tourBag = tourPool.slice();
+        for (let i = tourBag.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [tourBag[i], tourBag[j]] = [tourBag[j], tourBag[i]];
+        }
+      }
+      const feature = tourBag.shift();
+      const c = d3.geoCentroid(feature);
+      if (!isNaN(c[0]) && !isNaN(c[1])) {
+        animateTo([-c[0], -c[1]], projection.scale());
+      }
+      revealLayer.selectAll("path").remove();
+      revealLayer.append("path")
+        .datum(feature)
+        .attr("d", path)
+        .attr("fill", "rgba(120, 220, 255, 0.22)")
+        .attr("stroke", "#7ec4ff")
+        .attr("stroke-width", 1.5)
+        .attr("stroke-linejoin", "round");
+      showInfo("Tour", feature);
+      tourTimer = setTimeout(tourTick, TOUR_INTERVAL_MS);
+    }
+
     // ---- Keyboard (continuous) ----
     const KEY_MAP = {
       "w": "up", "W": "up", "ArrowUp": "up",
@@ -584,6 +746,8 @@
     const heldActions = new Set();
     let animActive = false;
     let lastFrameT = 0;
+    let invertH = true;
+    let invertV = true;
 
     function isTypingTarget(t) {
       if (!t) return false;
@@ -623,12 +787,14 @@
 
       // Rotation: deg/sec scaled down as we zoom in (smaller features → smaller motion)
       const rotDeg = KEY_ROTATE_DEG_PER_SEC * dt * (initialScale / projection.scale());
+      const hSign = invertH ? -1 : 1;
+      const vSign = invertV ? -1 : 1;
       const r = projection.rotate();
       let dλ = 0, dφ = 0;
-      if (heldActions.has("left")) dλ -= rotDeg;
-      if (heldActions.has("right")) dλ += rotDeg;
-      if (heldActions.has("up")) dφ += rotDeg;
-      if (heldActions.has("down")) dφ -= rotDeg;
+      if (heldActions.has("left")) dλ -= rotDeg * hSign;
+      if (heldActions.has("right")) dλ += rotDeg * hSign;
+      if (heldActions.has("up")) dφ += rotDeg * vSign;
+      if (heldActions.has("down")) dφ -= rotDeg * vSign;
       if (dλ || dφ) {
         projection.rotate([r[0] + dλ, Math.max(-90, Math.min(90, r[1] + dφ))]);
       }
@@ -750,7 +916,8 @@
       allBox.checked = checkedSubs.length === allSubs.length;
       allBox.indeterminate = checkedSubs.length > 0 && checkedSubs.length < allSubs.length;
       allOn = checkedSubs.length === allSubs.length;
-      if (mode !== "info") rebuildPool();
+      if (mode === "quiz") rebuildPool();
+      else if (mode === "tour") tourBag = []; // refresh from new pool on next tick
     }
 
     document.getElementById("all-toggle").addEventListener("change", (e) => {
@@ -761,49 +928,67 @@
       syncFromTree();
     });
 
-    // ---- Mode tabs ----
-    document.querySelectorAll(".mode-tab").forEach(tab => {
-      tab.addEventListener("click", () => {
-        const newMode = tab.dataset.mode;
-        if (newMode === mode) return;
-        document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active"));
-        tab.classList.add("active");
-        const previousMode = mode;
-        mode = newMode;
-        applyModeUI();
-        if (mode === "info") {
-          enterInfoMode(previousMode);
-        } else {
-          exitInfoMode();
-          if (mode === "states") {
-            animateTo(US_ROTATE, initialScale * US_SCALE_MULT);
-          } else if (previousMode === "states") {
-            animateTo(ROTATE_DEFAULT, initialScale);
-          }
-          rebuildPool();
+    // ---- Mode / dataset buttons ----
+    document.querySelectorAll(".mode-tab").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const action = btn.dataset.action;
+        if (action === "countries" || action === "states") {
+          setDataset(action);
+        } else if (action === "info" || action === "tour") {
+          setMode(mode === action ? "quiz" : action);
         }
       });
     });
 
-    function applyModeUI() {
-      document.getElementById("filter-section").style.display =
-        mode === "countries" ? "block" : "none";
-      svgEl.classList.toggle("info-mode", mode === "info");
-      reticle.style("display", mode === "info" ? null : "none");
-      promptCard.classList.toggle("info", mode === "info");
+    function setDataset(newDataset) {
+      if (dataset === newDataset) return;
+      dataset = newDataset;
+      updateButtonHighlights();
+      applyModeUI();
+      if (dataset === "states") {
+        animateTo(US_ROTATE, initialScale * US_SCALE_MULT);
+      } else {
+        animateTo(ROTATE_DEFAULT, initialScale);
+      }
+      if (mode === "quiz") rebuildPool();
+      else if (mode === "tour") { stopTour(); startTour(); }
+      else if (mode === "info") { lastInfoHit = null; updateInfo(); }
     }
 
-    function enterInfoMode(prevMode) {
+    function setMode(newMode) {
+      if (mode === newMode) return;
+      const prev = mode;
+      mode = newMode;
+      updateButtonHighlights();
+      applyModeUI();
+      if (prev === "tour") stopTour();
+      if (prev === "info") lastInfoHit = null;
       revealLayer.selectAll("path").remove();
       promptCard.classList.remove("revealing");
       revealing = false;
       target = null;
-      if (prevMode === "states") animateTo(ROTATE_DEFAULT, initialScale);
-      updateInfo();
+      if (mode === "info") updateInfo();
+      else if (mode === "tour") startTour();
+      else if (mode === "quiz") rebuildPool();
     }
 
-    function exitInfoMode() {
-      // nothing to clean up beyond UI; rebuildPool handled by caller
+    function updateButtonHighlights() {
+      document.querySelectorAll(".mode-tab").forEach(b => b.classList.remove("active"));
+      const dsBtn = document.querySelector(`.mode-tab[data-action="${dataset}"]`);
+      if (dsBtn) dsBtn.classList.add("active");
+      if (mode === "info" || mode === "tour") {
+        const mBtn = document.querySelector(`.mode-tab[data-action="${mode}"]`);
+        if (mBtn) mBtn.classList.add("active");
+      }
+    }
+
+    function applyModeUI() {
+      document.getElementById("filter-section").style.display =
+        dataset === "countries" ? "block" : "none";
+      svgEl.classList.toggle("info-mode", mode === "info");
+      reticle.style("display", (mode === "info" && IS_TOUCH) ? null : "none");
+      promptCard.classList.toggle("info", mode === "info");
+      promptCard.classList.toggle("tour", mode === "tour");
     }
 
     function animateTo(targetRotate, targetScale) {
@@ -839,7 +1024,142 @@
       if (mode === "info") updateInfo();
     });
 
+    // ---- Background color ----
+    document.getElementById("bg-color").addEventListener("input", (e) => {
+      document.body.style.background = e.target.value;
+    });
+
+    // ---- Invert controls ----
+    document.getElementById("invert-h").addEventListener("change", (e) => {
+      invertH = e.target.checked;
+    });
+    document.getElementById("invert-v").addEventListener("change", (e) => {
+      invertV = e.target.checked;
+    });
+
+    // ---- Find / autocomplete ----
+    const searchIndex = [
+      ...countryFeatures.map(f => ({ label: f.properties.displayName, type: "country", feature: f })),
+      ...stateFeatures.map(f => ({ label: f.properties.displayName, type: "state", feature: f })),
+    ];
+
+    const findInput = document.getElementById("find-input");
+    const findResults = document.getElementById("find-results");
+    let currentMatches = [];
+    let findIndex = -1;
+
+    function computeMatches(query) {
+      const q = query.trim().toLowerCase();
+      if (!q) return [];
+      return searchIndex
+        .filter(item => item.label.toLowerCase().includes(q))
+        .sort((a, b) => {
+          const aStarts = a.label.toLowerCase().startsWith(q);
+          const bStarts = b.label.toLowerCase().startsWith(q);
+          if (aStarts !== bStarts) return aStarts ? -1 : 1;
+          return a.label.localeCompare(b.label);
+        })
+        .slice(0, 10);
+    }
+
+    function renderFindResults() {
+      findResults.innerHTML = "";
+      if (currentMatches.length === 0) {
+        findResults.hidden = true;
+        findIndex = -1;
+        return;
+      }
+      findResults.hidden = false;
+      currentMatches.forEach((item, i) => {
+        const li = document.createElement("li");
+        if (i === findIndex) li.classList.add("active");
+        const flag = document.createElement("span");
+        flag.textContent = item.feature.properties.flag || "";
+        const name = document.createElement("span");
+        name.className = "find-name";
+        name.textContent = item.label;
+        const badge = document.createElement("span");
+        badge.className = "type-badge";
+        badge.textContent = item.type;
+        li.appendChild(flag);
+        li.appendChild(name);
+        li.appendChild(badge);
+        li.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          selectFindItem(item);
+        });
+        findResults.appendChild(li);
+      });
+    }
+
+    function selectFindItem(item) {
+      findInput.value = "";
+      currentMatches = [];
+      findIndex = -1;
+      findResults.hidden = true;
+      findResults.innerHTML = "";
+
+      const c = d3.geoCentroid(item.feature);
+      if (!isNaN(c[0]) && !isNaN(c[1])) {
+        animateTo([-c[0], -c[1]], projection.scale());
+      }
+      revealLayer.selectAll("path").remove();
+      revealLayer.append("path")
+        .datum(item.feature)
+        .attr("d", path)
+        .attr("fill", "rgba(180, 140, 255, 0.22)")
+        .attr("stroke", "#bf94ff")
+        .attr("stroke-width", 1.5)
+        .attr("stroke-linejoin", "round");
+      showInfo("Found", item.feature);
+      if (mode === "info") lastInfoHit = null;
+    }
+
+    findInput.addEventListener("input", (e) => {
+      currentMatches = computeMatches(e.target.value);
+      findIndex = currentMatches.length > 0 ? 0 : -1;
+      renderFindResults();
+    });
+
+    findInput.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown") {
+        if (currentMatches.length === 0) return;
+        e.preventDefault();
+        findIndex = (findIndex + 1) % currentMatches.length;
+        renderFindResults();
+        const active = findResults.querySelector("li.active");
+        if (active) active.scrollIntoView({ block: "nearest" });
+      } else if (e.key === "ArrowUp") {
+        if (currentMatches.length === 0) return;
+        e.preventDefault();
+        findIndex = (findIndex - 1 + currentMatches.length) % currentMatches.length;
+        renderFindResults();
+        const active = findResults.querySelector("li.active");
+        if (active) active.scrollIntoView({ block: "nearest" });
+      } else if (e.key === "Enter") {
+        if (findIndex >= 0 && currentMatches[findIndex]) {
+          e.preventDefault();
+          selectFindItem(currentMatches[findIndex]);
+          findInput.blur();
+        }
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        findInput.value = "";
+        currentMatches = [];
+        findIndex = -1;
+        renderFindResults();
+        findInput.blur();
+      }
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!findInput.contains(e.target) && !findResults.contains(e.target)) {
+        findResults.hidden = true;
+      }
+    });
+
     // ---- Boot ----
+    updateButtonHighlights();
     applyModeUI();
     rebuildPool();
   })().catch(err => {
