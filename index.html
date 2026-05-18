@@ -406,7 +406,27 @@
     }
     positionReticle();
 
+    // Land LOD: swap between 110m (cheap, ~1k pts) and 50m (detailed, ~10k pts)
+    // based on current zoom. Hit-testing and outlines always use 50m features.
+    const LOD_UP_SCALE = 1.8;   // upgrade to hi-res at scale ≥ initial * this
+    const LOD_DOWN_SCALE = 1.5; // downgrade to lo-res at scale ≤ initial * this (hysteresis)
+    let landGeoHi = null;
+    let landGeoLo = null;
+    let currentLOD = "lo";
+
+    function updateLOD() {
+      const ratio = projection.scale() / initialScale;
+      if (currentLOD === "lo" && ratio >= LOD_UP_SCALE && landGeoHi) {
+        currentLOD = "hi";
+        landPath.datum(landGeoHi);
+      } else if (currentLOD === "hi" && ratio <= LOD_DOWN_SCALE && landGeoLo) {
+        currentLOD = "lo";
+        landPath.datum(landGeoLo);
+      }
+    }
+
     function render() {
+      updateLOD();
       oceanPath.attr("d", path);
       graticulePath.attr("d", path);
       landPath.attr("d", path);
@@ -416,8 +436,9 @@
     }
 
     // ---- Data load ----
-    const [worldTopo, statesTopo, countriesMeta, lakesGeo, riversGeo] = await Promise.all([
+    const [worldTopo, worldTopoLow, statesTopo, countriesMeta, lakesGeo, riversGeo] = await Promise.all([
       d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json"),
+      d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json"),
       d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json"),
       d3.json("https://cdn.jsdelivr.net/npm/world-countries@5.1.0/dist/countries.json"),
       d3.json("https://cdn.jsdelivr.net/gh/martynafford/natural-earth-geojson@master/50m/physical/ne_50m_lakes.json"),
@@ -453,8 +474,9 @@
       return f;
     });
 
-    const landGeo = topojson.merge(worldTopo, worldTopo.objects.countries.geometries);
-    landPath.datum(landGeo);
+    landGeoHi = topojson.merge(worldTopo, worldTopo.objects.countries.geometries);
+    landGeoLo = topojson.merge(worldTopoLow, worldTopoLow.objects.countries.geometries);
+    landPath.datum(landGeoLo);
     lakesPath.datum(lakesGeo);
     riversPath.datum(riversGeo);
 
