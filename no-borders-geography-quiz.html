@@ -1241,6 +1241,389 @@
       "West Pokot": "Kapenguria",
     };
 
+    // 83 federal subjects per the geoBoundaries gbOpen release (pre-2014
+    // borders; post-2014/2022 territorial claims aren't included).
+    // Source has inconsistent casing "Leningrad oblast" — fixed via override.
+    const RUSSIAN_CAPITALS = {
+      "Adygea": "Maykop", "Altai Krai": "Barnaul", "Altai Republic": "Gorno-Altaysk",
+      "Amur Oblast": "Blagoveshchensk", "Arkhangelsk Oblast": "Arkhangelsk",
+      "Astrakhan Oblast": "Astrakhan", "Bashkortostan": "Ufa",
+      "Belgorod Oblast": "Belgorod", "Bryansk Oblast": "Bryansk",
+      "Buryatia": "Ulan-Ude", "Chechnya": "Grozny",
+      "Chelyabinsk Oblast": "Chelyabinsk", "Chukotka Autonomous Okrug": "Anadyr",
+      "Chuvashia": "Cheboksary", "Dagestan": "Makhachkala",
+      "Ingushetia": "Magas", "Irkutsk Oblast": "Irkutsk",
+      "Ivanovo Oblast": "Ivanovo", "Jewish Autonomous Oblast": "Birobidzhan",
+      "Kabardino-Balkaria": "Nalchik", "Kaliningrad": "Kaliningrad",
+      "Kalmykia": "Elista", "Kaluga Oblast": "Kaluga",
+      "Kamchatka Krai": "Petropavlovsk-Kamchatsky", "Karachay-Cherkessia": "Cherkessk",
+      "Kemerovo Oblast": "Kemerovo", "Khabarovsk Krai": "Khabarovsk",
+      "Khakassia": "Abakan", "Khanty-Mansiysk Autonomous Okrug – Ugra": "Khanty-Mansiysk",
+      "Kirov Oblast": "Kirov", "Komi Republic": "Syktyvkar",
+      "Kostroma Oblast": "Kostroma", "Krasnodar Krai": "Krasnodar",
+      "Krasnoyarsk Krai": "Krasnoyarsk", "Kurgan Oblast": "Kurgan",
+      "Kursk Oblast": "Kursk", "Leningrad Oblast": "Saint Petersburg",
+      "Lipetsk Oblast": "Lipetsk", "Magadan Oblast": "Magadan",
+      "Mari El": "Yoshkar-Ola", "Moscow": "Moscow",
+      "Moscow Oblast": "Krasnogorsk", "Murmansk Oblast": "Murmansk",
+      "Nenets Autonomous Okrug": "Naryan-Mar", "Nizhny Novgorod Oblast": "Nizhny Novgorod",
+      "North Ossetia–Alania": "Vladikavkaz", "Novgorod Oblast": "Veliky Novgorod",
+      "Novosibirsk Oblast": "Novosibirsk", "Omsk Oblast": "Omsk",
+      "Orenburg Oblast": "Orenburg", "Oryol Oblast": "Oryol",
+      "Penza Oblast": "Penza", "Perm Krai": "Perm",
+      "Primorsky Krai": "Vladivostok", "Pskov Oblast": "Pskov",
+      "Republic of Karelia": "Petrozavodsk", "Republic of Mordovia": "Saransk",
+      "Rostov Oblast": "Rostov-on-Don", "Ryazan Oblast": "Ryazan",
+      "Saint Petersburg": "Saint Petersburg", "Sakha Republic": "Yakutsk",
+      "Sakhalin Oblast": "Yuzhno-Sakhalinsk", "Samara Oblast": "Samara",
+      "Saratov Oblast": "Saratov", "Smolensk Oblast": "Smolensk",
+      "Stavropol Krai": "Stavropol", "Sverdlovsk Oblast": "Yekaterinburg",
+      "Tambov Oblast": "Tambov", "Tatarstan": "Kazan",
+      "Tomsk Oblast": "Tomsk", "Tula Oblast": "Tula",
+      "Tuva": "Kyzyl", "Tver Oblast": "Tver",
+      "Tyumen Oblast": "Tyumen", "Udmurtia": "Izhevsk",
+      "Ulyanovsk Oblast": "Ulyanovsk", "Vladimir Oblast": "Vladimir",
+      "Volgograd Oblast": "Volgograd", "Vologda Oblast": "Vologda",
+      "Voronezh Oblast": "Voronezh", "Yamalo-Nenets Autonomous Okrug": "Salekhard",
+      "Yaroslavl Oblast": "Yaroslavl", "Zabaykalsky Krai": "Chita",
+    };
+
+    const POLISH_CAPITALS = {
+      "Greater Poland Voivodeship": "Poznań",
+      "Kuyavian-Pomeranian Voivodeship": "Bydgoszcz / Toruń",
+      "Lesser Poland Voivodeship": "Kraków",
+      "Lower Silesian Voivodeship": "Wrocław",
+      "Lublin Voivodeship": "Lublin",
+      "Lubusz Voivodeship": "Gorzów Wielkopolski / Zielona Góra",
+      "Masovian Voivodeship": "Warsaw",
+      "Opole Voivodeship": "Opole",
+      "Podlaskie Voivodeship": "Białystok",
+      "Pomeranian Voivodeship": "Gdańsk",
+      "Silesian Voivodeship": "Katowice",
+      "Subcarpathian Voivodeship": "Rzeszów",
+      "Warmian-Masurian Voivodeship": "Olsztyn",
+      "West Pomeranian Voivodeship": "Szczecin",
+      "Łódź Voivodeship": "Łódź",
+      "Świętokrzyskie Voivodeship": "Kielce",
+    };
+
+    // Belgium ADM2 (10 provinces + Brussels). Source uses Dutch names
+    // for all provinces, including the Walloon ones. Overrides map them to
+    // their more recognisable English forms.
+    const BELGIAN_CAPITALS = {
+      "Antwerp": "Antwerp",
+      "Brussels": "Brussels",
+      "East Flanders": "Ghent",
+      "Flemish Brabant": "Leuven",
+      "Hainaut": "Mons",
+      "Liège": "Liège",
+      "Limburg": "Hasselt",
+      "Luxembourg": "Arlon",
+      "Namur": "Namur",
+      "Walloon Brabant": "Wavre",
+      "West Flanders": "Bruges",
+    };
+
+    const SWEDISH_CAPITALS = {
+      "Blekinge län": "Karlskrona",
+      "Dalarnas län": "Falun",
+      "Gotlands län": "Visby",
+      "Gävleborgs län": "Gävle",
+      "Hallands län": "Halmstad",
+      "Jämtlands län": "Östersund",
+      "Jönköpings län": "Jönköping",
+      "Kalmar län": "Kalmar",
+      "Kronobergs län": "Växjö",
+      "Norrbottens län": "Luleå",
+      "Skåne län": "Malmö",
+      "Stockholms län": "Stockholm",
+      "Södermanlands län": "Nyköping",
+      "Uppsala län": "Uppsala",
+      "Värmlands län": "Karlstad",
+      "Västerbottens län": "Umeå",
+      "Västernorrlands län": "Härnösand",
+      "Västmanlands län": "Västerås",
+      "Västra Götalands län": "Göteborg",
+      "Örebro län": "Örebro",
+      "Östergötlands län": "Linköping",
+    };
+
+    // Post-2020 reform (11 counties).
+    const NORWEGIAN_CAPITALS = {
+      "Agder": "Kristiansand",
+      "Innlandet": "Hamar",
+      "Møre og Romsdal": "Molde",
+      "Nordland": "Bodø",
+      "Oslo": "Oslo",
+      "Rogaland": "Stavanger",
+      "Troms og Finnmark": "Tromsø",
+      "Trøndelag": "Steinkjer",
+      "Vestfold og Telemark": "Skien",
+      "Vestland": "Bergen",
+      "Viken": "Drammen",
+    };
+
+    const FINNISH_CAPITALS = {
+      "Central Finland": "Jyväskylä",
+      "Finland Proper": "Turku",
+      "Kainuu": "Kajaani",
+      "Keski-Pohjanmaa": "Kokkola",
+      "Kymenlaakso": "Kouvola",
+      "Lapland": "Rovaniemi",
+      "North Karelia": "Joensuu",
+      "Northern Ostrobothnia": "Oulu",
+      "Northern Savonia": "Kuopio",
+      "Ostrobothnia": "Vaasa",
+      "Pirkanmaa": "Tampere",
+      "Päijät-Häme": "Lahti",
+      "Satakunta": "Pori",
+      "South Karelia": "Lappeenranta",
+      "South Ostrobothnia": "Seinäjoki",
+      "Southern Savonia": "Mikkeli",
+      "Tavastia Proper": "Hämeenlinna",
+      "Uusimaa": "Helsinki",
+      "Åland Islands": "Mariehamn",
+    };
+
+    // Greek 13 administrative regions + Mount Athos (Agion Oros).
+    // Source uses Greek genitive transliterations and one truncated name;
+    // all are overridden to English forms.
+    const GREEK_CAPITALS = {
+      "Eastern Macedonia and Thrace": "Komotini",
+      "Attica": "Athens",
+      "Western Greece": "Patras",
+      "Western Macedonia": "Kozani",
+      "Ionian Islands": "Corfu",
+      "Epirus": "Ioannina",
+      "Central Macedonia": "Thessaloniki",
+      "Crete": "Heraklion",
+      "South Aegean": "Ermoupoli",
+      "Peloponnese": "Tripoli",
+      "Central Greece": "Lamia",
+      "Thessaly": "Larissa",
+      "North Aegean": "Mytilene",
+      "Mount Athos": "Karyes",
+    };
+
+    const TURKISH_CAPITALS = {
+      "Adana": "Adana", "Adıyaman": "Adıyaman", "Afyonkarahisar": "Afyonkarahisar",
+      "Ağrı": "Ağrı", "Aksaray": "Aksaray", "Amasya": "Amasya",
+      "Ankara": "Ankara", "Antalya": "Antalya", "Ardahan": "Ardahan",
+      "Artvin": "Artvin", "Aydın": "Aydın", "Balıkesir": "Balıkesir",
+      "Bartın": "Bartın", "Batman": "Batman", "Bayburt": "Bayburt",
+      "Bilecik": "Bilecik", "Bingöl": "Bingöl", "Bitlis": "Bitlis",
+      "Bolu": "Bolu", "Burdur": "Burdur", "Bursa": "Bursa",
+      "Çanakkale": "Çanakkale", "Çankırı": "Çankırı", "Çorum": "Çorum",
+      "Denizli": "Denizli", "Diyarbakır": "Diyarbakır", "Düzce": "Düzce",
+      "Edirne": "Edirne", "Elazığ": "Elazığ", "Erzincan": "Erzincan",
+      "Erzurum": "Erzurum", "Eskişehir": "Eskişehir", "Gaziantep": "Gaziantep",
+      "Giresun": "Giresun", "Gümüşhane": "Gümüşhane", "Hakkâri": "Hakkâri",
+      "Hatay": "Antakya", "Iğdır": "Iğdır", "Isparta": "Isparta",
+      "İstanbul": "İstanbul", "İzmir": "İzmir", "Kahramanmaraş": "Kahramanmaraş",
+      "Karabük": "Karabük", "Karaman": "Karaman", "Kars": "Kars",
+      "Kastamonu": "Kastamonu", "Kayseri": "Kayseri", "Kırıkkale": "Kırıkkale",
+      "Kırklareli": "Kırklareli", "Kırşehir": "Kırşehir", "Kilis": "Kilis",
+      "Kocaeli": "İzmit", "Konya": "Konya", "Kütahya": "Kütahya",
+      "Malatya": "Malatya", "Manisa": "Manisa", "Mardin": "Mardin",
+      "Mersin": "Mersin", "Muğla": "Muğla", "Muş": "Muş",
+      "Nevşehir": "Nevşehir", "Niğde": "Niğde", "Ordu": "Ordu",
+      "Osmaniye": "Osmaniye", "Rize": "Rize", "Sakarya": "Adapazarı",
+      "Samsun": "Samsun", "Şanlıurfa": "Şanlıurfa", "Siirt": "Siirt",
+      "Sinop": "Sinop", "Sivas": "Sivas", "Şırnak": "Şırnak",
+      "Tekirdağ": "Tekirdağ", "Tokat": "Tokat", "Trabzon": "Trabzon",
+      "Tunceli": "Tunceli", "Uşak": "Uşak", "Van": "Van",
+      "Yalova": "Yalova", "Yozgat": "Yozgat", "Zonguldak": "Zonguldak",
+    };
+
+    const UKRAINIAN_CAPITALS = {
+      "Autonomous Republic of Crimea": "Simferopol",
+      "Cherkasy Oblast": "Cherkasy",
+      "Chernihiv Oblast": "Chernihiv",
+      "Chernivtsi Oblast": "Chernivtsi",
+      "Dnipropetrovsk Oblast": "Dnipro",
+      "Donetsk Oblast": "Donetsk",
+      "Ivano-Frankivsk Oblast": "Ivano-Frankivsk",
+      "Kharkiv Oblast": "Kharkiv",
+      "Kherson Oblast": "Kherson",
+      "Khmelnytskyi Oblast": "Khmelnytskyi",
+      "Kirovohrad Oblast": "Kropyvnytskyi",
+      "Kyiv": "Kyiv",
+      "Kyiv Oblast": "Kyiv",
+      "Luhansk Oblast": "Luhansk",
+      "Lviv Oblast": "Lviv",
+      "Mykolaiv Oblast": "Mykolaiv",
+      "Odessa Oblast": "Odesa",
+      "Poltava Oblast": "Poltava",
+      "Rivne Oblast": "Rivne",
+      "Sevastopol": "Sevastopol",
+      "Sumy Oblast": "Sumy",
+      "Ternopil Oblast": "Ternopil",
+      "Vinnytsia Oblast": "Vinnytsia",
+      "Volyn Oblast": "Lutsk",
+      "Zakarpattia Oblast": "Uzhhorod",
+      "Zaporizhia Oblast": "Zaporizhzhia",
+      "Zhytomyr Oblast": "Zhytomyr",
+    };
+
+    // 63 provinces + Côn Đảo district (kept as the source has it).
+    const VIETNAMESE_CAPITALS = {
+      "An Giang": "Long Xuyên", "Bà Rịa–Vũng Tàu": "Bà Rịa",
+      "Bình Dương": "Thủ Dầu Một", "Bình Phước": "Đồng Xoài",
+      "Bình Thuận": "Phan Thiết", "Bình Định": "Quy Nhơn",
+      "Bạc Liêu": "Bạc Liêu", "Bắc Giang": "Bắc Giang",
+      "Bắc Kạn": "Bắc Kạn", "Bắc Ninh": "Bắc Ninh",
+      "Bến Tre": "Bến Tre", "Cao Bằng": "Cao Bằng",
+      "Cà Mau": "Cà Mau", "Côn Đảo": "Côn Đảo",
+      "Cần Thơ": "Cần Thơ", "Gia Lai": "Pleiku",
+      "Ho Chi Minh": "Ho Chi Minh City", "Hà Giang": "Hà Giang",
+      "Hà Nam": "Phủ Lý", "Hà Nội": "Hà Nội",
+      "Hà Tĩnh": "Hà Tĩnh", "Hòa Bình": "Hòa Bình",
+      "Hưng Yên": "Hưng Yên", "Hải Dương": "Hải Dương",
+      "Hải Phòng": "Hải Phòng", "Hậu Giang": "Vị Thanh",
+      "Khánh Hòa": "Nha Trang", "Kiên Giang": "Rạch Giá",
+      "Kon Tum": "Kon Tum", "Lai Châu": "Lai Châu",
+      "Long An": "Tân An", "Lào Cai": "Lào Cai",
+      "Lâm Đồng": "Đà Lạt", "Lạng Sơn": "Lạng Sơn",
+      "Nam Định": "Nam Định", "Nghệ An": "Vinh",
+      "Ninh Bình": "Ninh Bình", "Ninh Thuận": "Phan Rang–Tháp Chàm",
+      "Phú Thọ": "Việt Trì", "Phú Yên": "Tuy Hòa",
+      "Quảng Bình": "Đồng Hới", "Quảng Nam": "Tam Kỳ",
+      "Quảng Ngãi": "Quảng Ngãi", "Quảng Ninh": "Hạ Long",
+      "Quảng Trị": "Đông Hà", "Sóc Trăng": "Sóc Trăng",
+      "Sơn La": "Sơn La", "Thanh Hóa": "Thanh Hóa",
+      "Thái Bình": "Thái Bình", "Thái Nguyên": "Thái Nguyên",
+      "Thừa Thiên Huế": "Huế", "Tiền Giang": "Mỹ Tho",
+      "Trà Vinh": "Trà Vinh", "Tuyên Quang": "Tuyên Quang",
+      "Tây Ninh": "Tây Ninh", "Vĩnh Long": "Vĩnh Long",
+      "Vĩnh Phúc": "Vĩnh Yên", "Yên Bái": "Yên Bái",
+      "Điện Biên": "Điện Biên Phủ", "Đà Nẵng": "Đà Nẵng",
+      "Đắk Lắk": "Buôn Ma Thuột", "Đắk Nông": "Gia Nghĩa",
+      "Đồng Nai": "Biên Hòa", "Đồng Tháp": "Cao Lãnh",
+    };
+
+    // 76 provinces + Bangkok metropolitan area. Source has " Province" suffix on
+    // most names (and Bangkok / Kalasin don't) — nameClean strips it for
+    // consistency, so capitals only need the short province names.
+    const THAI_CAPITALS = {
+      "Amnat Charoen": "Amnat Charoen", "Ang Thong": "Ang Thong",
+      "Bangkok": "Bangkok", "Bueng Kan": "Bueng Kan",
+      "Buri Ram": "Buri Ram", "Chachoengsao": "Chachoengsao",
+      "Chai Nat": "Chai Nat", "Chaiyaphum": "Chaiyaphum",
+      "Chanthaburi": "Chanthaburi", "Chiang Mai": "Chiang Mai",
+      "Chiang Rai": "Chiang Rai", "Chon Buri": "Chon Buri",
+      "Chumphon": "Chumphon", "Kalasin": "Kalasin",
+      "Kamphaeng Phet": "Kamphaeng Phet", "Kanchanaburi": "Kanchanaburi",
+      "Khon Kaen": "Khon Kaen", "Krabi": "Krabi",
+      "Lampang": "Lampang", "Lamphun": "Lamphun",
+      "Loei": "Loei", "Lopburi": "Lopburi",
+      "Mae Hong Son": "Mae Hong Son", "Maha Sarakham": "Maha Sarakham",
+      "Mukdahan": "Mukdahan", "Nakhon Nayok": "Nakhon Nayok",
+      "Nakhon Pathom": "Nakhon Pathom", "Nakhon Phanom": "Nakhon Phanom",
+      "Nakhon Ratchasima": "Nakhon Ratchasima", "Nakhon Sawan": "Nakhon Sawan",
+      "Nakhon Si Thammarat": "Nakhon Si Thammarat", "Nan": "Nan",
+      "Narathiwat": "Narathiwat", "Nong Bua Lam Phu": "Nong Bua Lam Phu",
+      "Nong Khai": "Nong Khai", "Nonthaburi": "Nonthaburi",
+      "Pathum Thani": "Pathum Thani", "Pattani": "Pattani",
+      "Phangnga": "Phangnga", "Phatthalung": "Phatthalung",
+      "Phayao": "Phayao", "Phetchabun": "Phetchabun",
+      "Phetchaburi": "Phetchaburi", "Phichit": "Phichit",
+      "Phitsanulok": "Phitsanulok",
+      "Phra Nakhon Si Ayutthaya": "Phra Nakhon Si Ayutthaya",
+      "Phrae": "Phrae", "Phuket": "Phuket",
+      "Prachin Buri": "Prachin Buri", "Prachuap Khiri Khan": "Prachuap Khiri Khan",
+      "Ranong": "Ranong", "Ratchaburi": "Ratchaburi",
+      "Rayong": "Rayong", "Roi Et": "Roi Et",
+      "Sa Kaeo": "Sa Kaeo", "Sakon Nakhon": "Sakon Nakhon",
+      "Samut Prakan": "Samut Prakan", "Samut Sakhon": "Samut Sakhon",
+      "Samut Songkhram": "Samut Songkhram", "Saraburi": "Saraburi",
+      "Satun": "Satun", "Si Sa Ket": "Si Sa Ket",
+      "Sing Buri": "Sing Buri", "Songkhla": "Songkhla",
+      "Sukhothai": "Sukhothai", "Suphan Buri": "Suphan Buri",
+      "Surat Thani": "Surat Thani", "Surin": "Surin",
+      "Tak": "Tak", "Trang": "Trang",
+      "Trat": "Trat", "Ubon Ratchathani": "Ubon Ratchathani",
+      "Udon Thani": "Udon Thani", "Uthai Thani": "Uthai Thani",
+      "Uttaradit": "Uttaradit", "Yala": "Yala",
+      "Yasothon": "Yasothon",
+    };
+
+    const MALAYSIAN_CAPITALS = {
+      "Johor": "Johor Bahru",
+      "Kedah": "Alor Setar",
+      "Kelantan": "Kota Bharu",
+      "Kuala Lumpur": "Kuala Lumpur",
+      "Labuan": "Victoria",
+      "Malacca": "Malacca City",
+      "Negeri Sembilan": "Seremban",
+      "Pahang": "Kuantan",
+      "Penang": "George Town",
+      "Perak": "Ipoh",
+      "Perlis": "Kangar",
+      "Putrajaya": "Putrajaya",
+      "Sabah": "Kota Kinabalu",
+      "Sarawak": "Kuching",
+      "Selangor": "Shah Alam",
+      "Terengganu": "Kuala Terengganu",
+    };
+
+    const PAKISTANI_CAPITALS = {
+      "Azad Kashmir": "Muzaffarabad",
+      "Balochistan": "Quetta",
+      "Gilgit-Baltistan": "Gilgit",
+      "Islamabad Capital Territory": "Islamabad",
+      "Khyber Pakhtunkhwa": "Peshawar",
+      "Punjab": "Lahore",
+      "Sindh": "Karachi",
+    };
+
+    // Nepal renamed Province 1 → Koshi (2023) and Province 2 → Madhesh (2022).
+    // Sudurpaschim is also occasionally spelled Sudur Paschim. Names are
+    // overridden to current official forms for display.
+    const NEPALI_CAPITALS = {
+      "Koshi": "Biratnagar",
+      "Madhesh": "Janakpur",
+      "Bagmati": "Hetauda",
+      "Gandaki": "Pokhara",
+      "Lumbini": "Deukhuri",
+      "Karnali": "Birendranagar",
+      "Sudurpaschim": "Godawari",
+    };
+
+    const NEW_ZEALAND_CAPITALS = {
+      "Auckland Region": "Auckland",
+      "Bay of Plenty Region": "Whakatāne",
+      "Canterbury Region": "Christchurch",
+      "Chatham Islands Territory": "Waitangi",
+      "Gisborne Region": "Gisborne",
+      "Hawke's Bay Region": "Napier",
+      "Manawatu-Wanganui Region": "Palmerston North",
+      "Marlborough Region": "Blenheim",
+      "Nelson Region": "Nelson",
+      "Northland Region": "Whangārei",
+      "Otago Region": "Dunedin",
+      "Southland Region": "Invercargill",
+      "Taranaki Region": "Stratford",
+      "Tasman Region": "Richmond",
+      "Waikato Region": "Hamilton",
+      "Wellington Region": "Wellington",
+      "West Coast Region": "Greymouth",
+    };
+
+    const DUTCH_CAPITALS = {
+      "Drenthe": "Assen",
+      "Flevoland": "Lelystad",
+      "Fryslân": "Leeuwarden",
+      "Gelderland": "Arnhem",
+      "Groningen": "Groningen",
+      "Limburg": "Maastricht",
+      "Noord-Brabant": "'s-Hertogenbosch",
+      "Noord-Holland": "Haarlem",
+      "Overijssel": "Zwolle",
+      "Utrecht": "Utrecht",
+      "Zeeland": "Middelburg",
+      "Zuid-Holland": "The Hague",
+    };
+
     const TANZANIAN_CAPITALS = {
       "Arusha": "Arusha",
       "Dar es Salaam": "Dar es Salaam",
@@ -1531,10 +1914,11 @@
         const nameKey = opts.nameKey || "name";
         const filter = opts.filter || (() => true);
         const overrides = opts.nameOverrides || null;
+        const clean = opts.nameClean || ((n) => n);
         entry.features = geo.features
           .filter(filter)
           .map(f => {
-            const rawName = f.properties[nameKey];
+            const rawName = clean((f.properties[nameKey] || "").trim());
             const name = (overrides && overrides[rawName]) || rawName;
             f.properties = {
               ...f.properties,
@@ -1808,6 +2192,183 @@
       cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/TZA/ADM1/geoBoundaries-TZA-ADM1_simplified.geojson",
       nameKey: "shapeName",
       searchType: "tanzanian-region",
+    });
+    registerSubdivision("russian-federal-subjects", {
+      label: "Russian federal subjects",
+      flag: "🇷🇺",
+      capitals: RUSSIAN_CAPITALS,
+      localPath: "russia.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/RUS/ADM1/geoBoundaries-RUS-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      nameOverrides: { "Leningrad oblast": "Leningrad Oblast" },
+      searchType: "russian-federal-subject",
+    });
+    registerSubdivision("polish-voivodeships", {
+      label: "Polish voivodeships",
+      flag: "🇵🇱",
+      capitals: POLISH_CAPITALS,
+      localPath: "poland.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/POL/ADM1/geoBoundaries-POL-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      searchType: "polish-voivodeship",
+    });
+    registerSubdivision("dutch-provinces", {
+      label: "Dutch provinces",
+      flag: "🇳🇱",
+      capitals: DUTCH_CAPITALS,
+      localPath: "netherlands.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/NLD/ADM1/geoBoundaries-NLD-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      searchType: "dutch-province",
+    });
+    registerSubdivision("belgian-provinces", {
+      label: "Belgian provinces",
+      flag: "🇧🇪",
+      capitals: BELGIAN_CAPITALS,
+      localPath: "belgium.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/BEL/ADM2/geoBoundaries-BEL-ADM2_simplified.geojson",
+      nameKey: "shapeName",
+      nameOverrides: {
+        "Antwerpen": "Antwerp",
+        "Henegouwen": "Hainaut",
+        "Luik": "Liège",
+        "Luxemburg": "Luxembourg",
+        "Namen": "Namur",
+        "Oost-Vlaanderen": "East Flanders",
+        "Vlaams-Brabant": "Flemish Brabant",
+        "Waals-Brabant": "Walloon Brabant",
+        "West-Vlaanderen": "West Flanders",
+      },
+      searchType: "belgian-province",
+    });
+    registerSubdivision("swedish-counties", {
+      label: "Swedish counties",
+      flag: "🇸🇪",
+      capitals: SWEDISH_CAPITALS,
+      localPath: "sweden.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/SWE/ADM1/geoBoundaries-SWE-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      searchType: "swedish-county",
+    });
+    registerSubdivision("norwegian-counties", {
+      label: "Norwegian counties",
+      flag: "🇳🇴",
+      capitals: NORWEGIAN_CAPITALS,
+      localPath: "norway.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/NOR/ADM1/geoBoundaries-NOR-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      searchType: "norwegian-county",
+    });
+    registerSubdivision("finnish-regions", {
+      label: "Finnish regions",
+      flag: "🇫🇮",
+      capitals: FINNISH_CAPITALS,
+      localPath: "finland.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/FIN/ADM1/geoBoundaries-FIN-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      searchType: "finnish-region",
+    });
+    registerSubdivision("greek-regions", {
+      label: "Greek regions",
+      flag: "🇬🇷",
+      capitals: GREEK_CAPITALS,
+      localPath: "greece.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/GRC/ADM2/geoBoundaries-GRC-ADM2_simplified.geojson",
+      nameKey: "shapeName",
+      nameOverrides: {
+        "Agion Oros": "Mount Athos",
+        "Anatolikis Makedonias kai Thr*": "Eastern Macedonia and Thrace",
+        "Attikis": "Attica",
+        "Dytikis Elladas": "Western Greece",
+        "Dytikis Makedonias": "Western Macedonia",
+        "Ionion Nison": "Ionian Islands",
+        "Ipeiroy": "Epirus",
+        "Kentrikis Makedonias": "Central Macedonia",
+        "Kritis": "Crete",
+        "Notioy Aigaioy": "South Aegean",
+        "Peloponnisoy": "Peloponnese",
+        "Stereas Elladas": "Central Greece",
+        "Thessalias": "Thessaly",
+        "Voreioy Aigaioy": "North Aegean",
+      },
+      searchType: "greek-region",
+    });
+    registerSubdivision("turkish-provinces", {
+      label: "Turkish provinces",
+      flag: "🇹🇷",
+      capitals: TURKISH_CAPITALS,
+      localPath: "turkey.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/TUR/ADM1/geoBoundaries-TUR-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      searchType: "turkish-province",
+    });
+    registerSubdivision("ukrainian-oblasts", {
+      label: "Ukrainian oblasts",
+      flag: "🇺🇦",
+      capitals: UKRAINIAN_CAPITALS,
+      localPath: "ukraine.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/UKR/ADM1/geoBoundaries-UKR-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      searchType: "ukrainian-oblast",
+    });
+    registerSubdivision("vietnamese-provinces", {
+      label: "Vietnamese provinces",
+      flag: "🇻🇳",
+      capitals: VIETNAMESE_CAPITALS,
+      localPath: "vietnam.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/VNM/ADM1/geoBoundaries-VNM-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      searchType: "vietnamese-province",
+    });
+    registerSubdivision("thai-provinces", {
+      label: "Thai provinces",
+      flag: "🇹🇭",
+      capitals: THAI_CAPITALS,
+      localPath: "thailand.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/THA/ADM1/geoBoundaries-THA-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      nameClean: (n) => n.replace(/ Province$/, ""),
+      searchType: "thai-province",
+    });
+    registerSubdivision("malaysian-states", {
+      label: "Malaysian states & federal territories",
+      flag: "🇲🇾",
+      capitals: MALAYSIAN_CAPITALS,
+      localPath: "malaysia.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/MYS/ADM1/geoBoundaries-MYS-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      searchType: "malaysian-state",
+    });
+    registerSubdivision("pakistani-provinces", {
+      label: "Pakistani provinces & territories",
+      flag: "🇵🇰",
+      capitals: PAKISTANI_CAPITALS,
+      localPath: "pakistan.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/PAK/ADM1/geoBoundaries-PAK-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      searchType: "pakistani-province",
+    });
+    registerSubdivision("nepalese-provinces", {
+      label: "Nepalese provinces",
+      flag: "🇳🇵",
+      capitals: NEPALI_CAPITALS,
+      localPath: "nepal.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/NPL/ADM1/geoBoundaries-NPL-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      nameOverrides: {
+        "Province 1": "Koshi",
+        "Province 2": "Madhesh",
+      },
+      searchType: "nepalese-province",
+    });
+    registerSubdivision("new-zealand-regions", {
+      label: "New Zealand regions",
+      flag: "🇳🇿",
+      capitals: NEW_ZEALAND_CAPITALS,
+      localPath: "new-zealand.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/NZL/ADM1/geoBoundaries-NZL-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      searchType: "new-zealand-region",
     });
 
     const datasetSelect = document.getElementById("dataset-select");
