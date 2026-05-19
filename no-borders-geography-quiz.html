@@ -304,6 +304,9 @@
           <option value="spanish-communities">Spanish autonomous communities</option>
           <option value="uk-countries">UK countries</option>
           <option value="uk-ceremonial-counties">UK ceremonial counties</option>
+          <option value="irish-counties">Irish counties</option>
+          <option value="japanese-prefectures">Japanese prefectures</option>
+          <option value="chinese-provinces">Chinese provinces, regions &amp; municipalities</option>
         </select>
       </div>
     </section>
@@ -848,6 +851,81 @@
       "Northern Ireland": "Belfast",
     };
 
+    // Republic of Ireland local-administrative areas (counties + cities + Dublin/Tipperary splits).
+    const IRISH_CAPITALS = {
+      "Carlow County": "Carlow",
+      "Cavan County": "Cavan",
+      "Clare County": "Ennis",
+      "Cork City": "Cork",
+      "Cork County": "Cork",
+      "Donegal County": "Lifford",
+      "Dublin City": "Dublin",
+      "Dún Laoghaire-Rathdown": "Dún Laoghaire",
+      "Fingal": "Swords",
+      "Galway City": "Galway",
+      "Galway County": "Galway",
+      "Kerry County": "Tralee",
+      "Kildare County": "Naas",
+      "Kilkenny County": "Kilkenny",
+      "Laois County": "Portlaoise",
+      "Leitrim County": "Carrick-on-Shannon",
+      "Limerick City": "Limerick",
+      "Limerick County": "Limerick",
+      "Longford County": "Longford",
+      "Louth County": "Dundalk",
+      "Mayo County": "Castlebar",
+      "Meath County": "Navan",
+      "Monaghan County": "Monaghan",
+      "North Tipperary": "Nenagh",
+      "Offaly County": "Tullamore",
+      "Roscommon County": "Roscommon",
+      "Sligo County": "Sligo",
+      "South Dublin": "Tallaght",
+      "South Tipperary": "Clonmel",
+      "Waterford City": "Waterford",
+      "Waterford County": "Dungarvan",
+      "Westmeath County": "Mullingar",
+      "Wexford County": "Wexford",
+      "Wicklow County": "Wicklow",
+    };
+
+    const JAPANESE_CAPITALS = {
+      "Aichi": "Nagoya", "Akita": "Akita", "Aomori": "Aomori",
+      "Chiba": "Chiba", "Ehime": "Matsuyama", "Fukui": "Fukui",
+      "Fukuoka": "Fukuoka", "Fukushima": "Fukushima", "Gifu": "Gifu",
+      "Gunma": "Maebashi", "Hiroshima": "Hiroshima", "Hokkaido": "Sapporo",
+      "Hyogo": "Kobe", "Ibaraki": "Mito", "Ishikawa": "Kanazawa",
+      "Iwate": "Morioka", "Kagawa": "Takamatsu", "Kagoshima": "Kagoshima",
+      "Kanagawa": "Yokohama", "Kochi": "Kochi", "Kumamoto": "Kumamoto",
+      "Kyoto": "Kyoto", "Mie": "Tsu", "Miyagi": "Sendai",
+      "Miyazaki": "Miyazaki", "Nagano": "Nagano", "Nagasaki": "Nagasaki",
+      "Nara": "Nara", "Niigata": "Niigata", "Oita": "Oita",
+      "Okayama": "Okayama", "Okinawa": "Naha", "Osaka": "Osaka",
+      "Saga": "Saga", "Saitama": "Saitama", "Shiga": "Otsu",
+      "Shimane": "Matsue", "Shizuoka": "Shizuoka", "Tochigi": "Utsunomiya",
+      "Tokushima": "Tokushima", "Tokyo": "Tokyo", "Tottori": "Tottori",
+      "Toyama": "Toyama", "Wakayama": "Wakayama", "Yamagata": "Yamagata",
+      "Yamaguchi": "Yamaguchi", "Yamanashi": "Kofu",
+    };
+
+    // Chinese provinces, regions, and municipalities (incl. SARs and Taiwan).
+    // The source file has "Heilongjian" without the trailing g — nameOverrides
+    // restores the correct spelling for display.
+    const CHINESE_CAPITALS = {
+      "Anhui": "Hefei", "Beijing": "Beijing", "Chongqing": "Chongqing",
+      "Fujian": "Fuzhou", "Gansu": "Lanzhou", "Guangdong": "Guangzhou",
+      "Guangxi": "Nanning", "Guizhou": "Guiyang", "Hainan": "Haikou",
+      "Hebei": "Shijiazhuang", "Heilongjiang": "Harbin", "Henan": "Zhengzhou",
+      "Hong Kong": "Hong Kong", "Hubei": "Wuhan", "Hunan": "Changsha",
+      "Inner Mongolia": "Hohhot", "Jiangsu": "Nanjing", "Jiangxi": "Nanchang",
+      "Jilin": "Changchun", "Liaoning": "Shenyang", "Macau": "Macau",
+      "Ningxia": "Yinchuan", "Qinghai": "Xining", "Shaanxi": "Xi'an",
+      "Shandong": "Jinan", "Shanghai": "Shanghai", "Shanxi": "Taiyuan",
+      "Sichuan": "Chengdu", "Taiwan": "Taipei", "Tianjin": "Tianjin",
+      "Tibet": "Lhasa", "Xinjiang": "Ürümqi", "Yunnan": "Kunming",
+      "Zhejiang": "Hangzhou",
+    };
+
     const ITALIAN_CAPITALS = {
       "Abruzzo": "L'Aquila",
       "Basilicata": "Potenza",
@@ -1005,15 +1083,17 @@
         const geo = await loadJson(opts.localPath, opts.cdnUrl);
         const nameKey = opts.nameKey || "name";
         const filter = opts.filter || (() => true);
+        const overrides = opts.nameOverrides || null;
         entry.features = geo.features
           .filter(filter)
           .map(f => {
-            const name = f.properties[nameKey];
+            const rawName = f.properties[nameKey];
+            const name = (overrides && overrides[rawName]) || rawName;
             f.properties = {
               ...f.properties,
               displayName: name,
               flag: entry.flag,
-              capital: entry.capitals[name] || "",
+              capital: entry.capitals[name] || entry.capitals[rawName] || "",
             };
             return f;
           });
@@ -1141,6 +1221,32 @@
       nameKey: "county",
       searchType: "uk-ceremonial-county",
       filter: (f) => !!f.properties.county,
+    });
+    registerSubdivision("irish-counties", {
+      label: "Irish counties",
+      flag: "🇮🇪",
+      capitals: IRISH_CAPITALS,
+      localPath: "ireland-counties.geojson",
+      cdnUrl: "https://cdn.jsdelivr.net/gh/codeforgermany/click_that_hood@main/public/data/ireland-counties.geojson",
+      searchType: "irish-county",
+    });
+    registerSubdivision("japanese-prefectures", {
+      label: "Japanese prefectures",
+      flag: "🇯🇵",
+      capitals: JAPANESE_CAPITALS,
+      localPath: "japan.geojson",
+      cdnUrl: "https://cdn.jsdelivr.net/gh/codeforgermany/click_that_hood@main/public/data/japan.geojson",
+      nameKey: "name_english",
+      searchType: "japanese-prefecture",
+    });
+    registerSubdivision("chinese-provinces", {
+      label: "Chinese provinces, regions & municipalities",
+      flag: "🇨🇳",
+      capitals: CHINESE_CAPITALS,
+      localPath: "china.geojson",
+      cdnUrl: "https://cdn.jsdelivr.net/gh/codeforgermany/click_that_hood@main/public/data/china.geojson",
+      nameOverrides: { "Heilongjian": "Heilongjiang" },
+      searchType: "chinese-province",
     });
 
     const datasetSelect = document.getElementById("dataset-select");
