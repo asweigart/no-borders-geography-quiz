@@ -88,6 +88,8 @@
     font-size: 11px; opacity: 0.45; letter-spacing: 0.5px;
     text-align: center;
   }
+  body.hover-mode #help-hint,
+  body.hover-mode #credit { display: none; }
   #credit {
     position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%);
     z-index: 10;
@@ -267,6 +269,31 @@
   .color-row > span { flex: 1; }
   .color-row .color-input { width: 60px; height: 28px; padding: 2px; flex: 0 0 auto; }
 
+  .scheme-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .scheme-btn {
+    display: flex; flex-direction: column; align-items: stretch; gap: 4px;
+    padding: 6px;
+    background: rgba(255,255,255,0.04);
+    color: #e8eef8;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .scheme-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); }
+  .scheme-preview {
+    display: flex; height: 14px; border-radius: 3px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .scheme-preview span { flex: 1; }
+
   .control-toggle {
     display: flex; align-items: center; gap: 10px;
     cursor: pointer; padding: 6px 0;
@@ -337,6 +364,38 @@
 
     <details class="group">
       <summary class="group-label">Colors</summary>
+      <div class="scheme-grid">
+        <button class="scheme-btn" data-scheme="classic">
+          <span class="scheme-preview">
+            <span style="background:#050912"></span><span style="background:#16335a"></span><span style="background:#3d6b48"></span><span style="background:#ffd54a"></span>
+          </span>Classic
+        </button>
+        <button class="scheme-btn" data-scheme="daylight">
+          <span class="scheme-preview">
+            <span style="background:#e8e4d8"></span><span style="background:#b9d6e8"></span><span style="background:#c9b88c"></span><span style="background:#d4861c"></span>
+          </span>Daylight
+        </button>
+        <button class="scheme-btn" data-scheme="parchment">
+          <span class="scheme-preview">
+            <span style="background:#2a1f15"></span><span style="background:#3a4a5c"></span><span style="background:#d4a373"></span><span style="background:#b03020"></span>
+          </span>Parchment
+        </button>
+        <button class="scheme-btn" data-scheme="neon">
+          <span class="scheme-preview">
+            <span style="background:#0a0014"></span><span style="background:#0d1a3a"></span><span style="background:#143a3a"></span><span style="background:#ff2dc8"></span>
+          </span>Neon
+        </button>
+        <button class="scheme-btn" data-scheme="mono">
+          <span class="scheme-preview">
+            <span style="background:#0d0d0d"></span><span style="background:#1f1f1f"></span><span style="background:#4a4a4a"></span><span style="background:#ffffff"></span>
+          </span>Mono
+        </button>
+        <button class="scheme-btn" data-scheme="sunset">
+          <span class="scheme-preview">
+            <span style="background:#1f0d18"></span><span style="background:#3a2433"></span><span style="background:#8b4a3a"></span><span style="background:#ffe45c"></span>
+          </span>Sunset
+        </button>
+      </div>
       <label class="color-row"><span>Background</span>
         <input type="color" id="bg-color" value="#050912" class="color-input">
       </label>
@@ -1875,14 +1934,7 @@
     }
 
     function showInfoDefault() {
-      if (mode === "show-all") {
-        promptCard.classList.remove("hidden-card");
-        const entry = datasets.get(dataset);
-        const features = entry?.features || [];
-        promptLabel.textContent = "Showing all";
-        promptName.textContent = entry?.label || "";
-        promptMeta.textContent = `${features.length} regions`;
-      } else if (mode === "info") {
+      if (mode === "info" || mode === "show-all") {
         promptCard.classList.add("hidden-card");
       }
     }
@@ -2156,6 +2208,7 @@
     function applyModeUI() {
       const hoverMode = mode === "info" || mode === "show-all";
       svgEl.classList.toggle("info-mode", hoverMode);
+      document.body.classList.toggle("hover-mode", hoverMode);
       reticle.style("display", (hoverMode && IS_TOUCH) ? null : "none");
       promptCard.classList.toggle("info", mode === "info");
       promptCard.classList.toggle("tour", mode === "tour");
@@ -2235,6 +2288,50 @@
     bindHighlightColor("highlight-color", "--hl-stroke", "--hl-fill", 0.22);
     bindHighlightColor("clicked-color", "--clicked-stroke", "--clicked-fill", 0.28);
     bindHighlightColor("correct-color", "--correct-stroke", "--correct-fill", 0.22);
+
+    // Color scheme presets
+    const COLOR_SCHEMES = {
+      classic:   { bg: "#050912", land: "#3d6b48", ocean: "#16335a", rivers: "#78aae6",
+                   highlight: "#7ec8ff", clicked: "#ffd54a", correct: "#7adba0" },
+      daylight:  { bg: "#e8e4d8", land: "#c9b88c", ocean: "#b9d6e8", rivers: "#4a7eb3",
+                   highlight: "#2d6cb0", clicked: "#d4861c", correct: "#4a9d5c" },
+      parchment: { bg: "#2a1f15", land: "#d4a373", ocean: "#3a4a5c", rivers: "#6a8aa8",
+                   highlight: "#c9a017", clicked: "#b03020", correct: "#6a8e3a" },
+      neon:      { bg: "#0a0014", land: "#143a3a", ocean: "#0d1a3a", rivers: "#1bd0ff",
+                   highlight: "#ff2dc8", clicked: "#f5e02b", correct: "#2bff7c" },
+      mono:      { bg: "#0d0d0d", land: "#4a4a4a", ocean: "#1f1f1f", rivers: "#8a8a8a",
+                   highlight: "#ffffff", clicked: "#e0e0e0", correct: "#909090" },
+      sunset:    { bg: "#1f0d18", land: "#8b4a3a", ocean: "#3a2433", rivers: "#e89358",
+                   highlight: "#ffd1a3", clicked: "#ffe45c", correct: "#ff7d5a" },
+    };
+
+    function applyScheme(name) {
+      const s = COLOR_SCHEMES[name];
+      if (!s) return;
+      document.body.style.background = s.bg;
+      document.getElementById("bg-color").value = s.bg;
+      const root = document.documentElement.style;
+      root.setProperty("--land", s.land);
+      document.getElementById("land-color").value = s.land;
+      root.setProperty("--ocean", s.ocean);
+      root.setProperty("--ocean-stroke", withAlpha(s.ocean, 0.25));
+      document.getElementById("ocean-color").value = s.ocean;
+      root.setProperty("--rivers", s.rivers);
+      document.getElementById("river-color").value = s.rivers;
+      root.setProperty("--hl-stroke", s.highlight);
+      root.setProperty("--hl-fill", withAlpha(s.highlight, 0.22));
+      document.getElementById("highlight-color").value = s.highlight;
+      root.setProperty("--clicked-stroke", s.clicked);
+      root.setProperty("--clicked-fill", withAlpha(s.clicked, 0.28));
+      document.getElementById("clicked-color").value = s.clicked;
+      root.setProperty("--correct-stroke", s.correct);
+      root.setProperty("--correct-fill", withAlpha(s.correct, 0.22));
+      document.getElementById("correct-color").value = s.correct;
+    }
+
+    document.querySelectorAll(".scheme-btn").forEach(btn => {
+      btn.addEventListener("click", () => applyScheme(btn.dataset.scheme));
+    });
 
     // ---- Visibility toggles ----
     document.getElementById("rivers-toggle").addEventListener("change", (e) => {
