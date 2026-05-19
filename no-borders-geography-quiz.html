@@ -310,6 +310,9 @@
           <option value="south-korean-regions">South Korean provinces &amp; metropolitan cities</option>
           <option value="indonesian-provinces">Indonesian provinces</option>
           <option value="philippine-regions">Philippine regions</option>
+          <option value="argentine-provinces">Argentine provinces</option>
+          <option value="chilean-regions">Chilean regions</option>
+          <option value="colombian-departments">Colombian departments</option>
         </select>
       </div>
     </section>
@@ -968,6 +971,92 @@
       "West Sumatra": "Padang",
     };
 
+    // Argentine provinces + autonomous capital (24). Source uses
+    // unaccented names; "Capital Federal" is the federal capital
+    // (Ciudad Autónoma de Buenos Aires), distinct from Buenos Aires
+    // province (capital La Plata).
+    const ARGENTINE_CAPITALS = {
+      "Buenos Aires": "La Plata",
+      "Capital Federal": "Buenos Aires",
+      "Catamarca": "San Fernando del Valle de Catamarca",
+      "Chaco": "Resistencia",
+      "Chubut": "Rawson",
+      "Cordoba": "Córdoba",
+      "Corrientes": "Corrientes",
+      "Entre Rios": "Paraná",
+      "Formosa": "Formosa",
+      "Jujuy": "San Salvador de Jujuy",
+      "La Pampa": "Santa Rosa",
+      "La Rioja": "La Rioja",
+      "Mendoza": "Mendoza",
+      "Misiones": "Posadas",
+      "Neuquen": "Neuquén",
+      "Rio Negro": "Viedma",
+      "Salta": "Salta",
+      "San Juan": "San Juan",
+      "San Luis": "San Luis",
+      "Santa Cruz": "Río Gallegos",
+      "Santa Fe": "Santa Fe",
+      "Santiago del Estero": "Santiago del Estero",
+      "Tierra del Fuego": "Ushuaia",
+      "Tucuman": "San Miguel de Tucumán",
+    };
+
+    const CHILEAN_CAPITALS = {
+      "Región Metropolitana de Santiago": "Santiago",
+      "Región de Antofagasta": "Antofagasta",
+      "Región de Arica y Parinacota": "Arica",
+      "Región de Atacama": "Copiapó",
+      "Región de Aysén del Gral.Ibañez del Campo": "Coyhaique",
+      "Región de Coquimbo": "La Serena",
+      "Región de La Araucanía": "Temuco",
+      "Región de Los Lagos": "Puerto Montt",
+      "Región de Los Ríos": "Valdivia",
+      "Región de Magallanes y Antártica Chilena": "Punta Arenas",
+      "Región de Tarapacá": "Iquique",
+      "Región de Valparaíso": "Valparaíso",
+      "Región de Ñuble": "Chillán",
+      "Región del Bío-Bío": "Concepción",
+      "Región del Libertador Bernardo O'Higgins": "Rancagua",
+      "Región del Maule": "Talca",
+    };
+
+    const COLOMBIAN_CAPITALS = {
+      "Amazonas": "Leticia",
+      "Antioquia": "Medellín",
+      "Arauca": "Arauca",
+      "Archipiélago de San Andrés, Providencia y Santa Catalina": "San Andrés",
+      "Atlántico": "Barranquilla",
+      "Bogota Capital District": "Bogotá",
+      "Bolívar": "Cartagena",
+      "Boyacá": "Tunja",
+      "Caldas": "Manizales",
+      "Caquetá": "Florencia",
+      "Casanare": "Yopal",
+      "Cauca": "Popayán",
+      "Cesar": "Valledupar",
+      "Chocó": "Quibdó",
+      "Cundinamarca": "Bogotá",
+      "Córdoba": "Montería",
+      "Guainía": "Inírida",
+      "Guaviare": "San José del Guaviare",
+      "Huila": "Neiva",
+      "La Guajira": "Riohacha",
+      "Magdalena": "Santa Marta",
+      "Meta": "Villavicencio",
+      "Nariño": "Pasto",
+      "Norte de Santander": "Cúcuta",
+      "Putumayo": "Mocoa",
+      "Quindío": "Armenia",
+      "Risaralda": "Pereira",
+      "Santander": "Bucaramanga",
+      "Sucre": "Sincelejo",
+      "Tolima": "Ibagué",
+      "Valle del Cauca": "Cali",
+      "Vaupés": "Mitú",
+      "Vichada": "Puerto Carreño",
+    };
+
     // Philippine regions (17). Regional administrative centers.
     // MIMAROPA and SOCCSKSARGEN are stylised acronyms — fixed via nameOverrides.
     const PHILIPPINE_CAPITALS = {
@@ -1357,6 +1446,32 @@
       nameKey: "shapeName",
       nameOverrides: { "Mimaropa": "MIMAROPA", "Soccsksargen": "SOCCSKSARGEN" },
       searchType: "philippine-region",
+    });
+    registerSubdivision("argentine-provinces", {
+      label: "Argentine provinces",
+      flag: "🇦🇷",
+      capitals: ARGENTINE_CAPITALS,
+      localPath: "argentina.geojson",
+      cdnUrl: "https://cdn.jsdelivr.net/gh/nachios/ArgentinaProvincias@master/provincias-argentina.geojson",
+      searchType: "argentine-province",
+    });
+    registerSubdivision("chilean-regions", {
+      label: "Chilean regions",
+      flag: "🇨🇱",
+      capitals: CHILEAN_CAPITALS,
+      localPath: "chile.geojson",
+      cdnUrl: "https://cdn.jsdelivr.net/gh/andresgmg/chile-geojson@master/regiones.geojson",
+      nameKey: "Region",
+      searchType: "chilean-region",
+    });
+    registerSubdivision("colombian-departments", {
+      label: "Colombian departments",
+      flag: "🇨🇴",
+      capitals: COLOMBIAN_CAPITALS,
+      localPath: "colombia.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/COL/ADM1/geoBoundaries-COL-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      searchType: "colombian-department",
     });
 
     const datasetSelect = document.getElementById("dataset-select");
