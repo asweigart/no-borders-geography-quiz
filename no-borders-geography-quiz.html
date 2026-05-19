@@ -38,6 +38,7 @@
   #prompt-card.revealing { border-color: rgba(255, 213, 74, 0.6); }
   #prompt-card.info { border-color: rgba(120, 180, 255, 0.4); }
   #prompt-card.tour { border-color: rgba(120, 220, 255, 0.5); }
+  #prompt-card.show-all { border-color: rgba(180, 220, 170, 0.5); }
   #prompt-label {
     font-size: 11px; opacity: 0.55; text-transform: uppercase;
     letter-spacing: 1.5px; margin-bottom: 6px;
@@ -136,6 +137,10 @@
   .mode-tab.active[data-action="tour"] {
     background: rgba(120, 220, 255, 0.18);
     border-color: rgba(120, 220, 255, 0.6);
+  }
+  .mode-tab.active[data-action="show-all"] {
+    background: rgba(180, 220, 170, 0.18);
+    border-color: rgba(180, 220, 170, 0.6);
   }
 
   .master-toggle {
@@ -281,11 +286,16 @@
       <span class="group-label">Mode</span>
       <div class="mode-tabs">
         <button class="mode-tab" data-action="info">Info</button>
+        <button class="mode-tab" data-action="show-all">Show All</button>
         <button class="mode-tab" data-action="tour">Tour</button>
-        <div class="mode-row">
-          <button class="mode-tab active" data-action="countries">Countries</button>
-          <button class="mode-tab" data-action="states">US States</button>
-        </div>
+        <select id="dataset-select">
+          <option value="countries">Countries</option>
+          <option value="states">US States</option>
+          <option value="canadian-provinces">Canadian provinces &amp; territories</option>
+          <option value="mexican-states">Mexican states</option>
+          <option value="brazilian-states">Brazilian states</option>
+          <option value="australian-states">Australian states &amp; territories</option>
+        </select>
       </div>
     </section>
 
@@ -304,7 +314,19 @@
     </section>
 
     <section class="group">
-      <span class="group-label">Controls</span>
+      <span class="group-label">Options</span>
+      <label class="control-toggle">
+        <input type="checkbox" id="rivers-toggle" checked>
+        <span>Rivers</span>
+      </label>
+      <label class="control-toggle">
+        <input type="checkbox" id="water-grid-toggle" checked>
+        <span>Water Grid</span>
+      </label>
+      <label class="control-toggle">
+        <input type="checkbox" id="long-lat-toggle">
+        <span>Long Lat Grid</span>
+      </label>
       <label class="control-toggle">
         <input type="checkbox" id="invert-h" checked>
         <span>Invert Horizontal</span>
@@ -403,7 +425,71 @@
       .attr("stroke-linejoin", "round")
       .attr("stroke-linecap", "round");
 
+    // Long/lat overlay grid + labels (off by default)
+    const longLatGraticule = d3.geoGraticule().step([30, 30])();
+    const longLatGridPath = svg.append("path")
+      .datum(longLatGraticule)
+      .attr("fill", "none")
+      .attr("stroke", "rgba(220, 240, 255, 0.32)")
+      .attr("stroke-width", 0.6)
+      .attr("stroke-dasharray", "2,3")
+      .style("display", "none");
+
+    const bordersLayer = svg.append("g").attr("id", "borders-layer");
     const revealLayer = svg.append("g").attr("id", "reveal-layer");
+
+    // Long/lat label points (every 30°, plus poles); rendered as text overlays
+    const longLatPoints = [];
+    for (let lon = -180; lon < 180; lon += 30) {
+      for (let lat = -60; lat <= 60; lat += 30) {
+        longLatPoints.push([lon, lat]);
+      }
+    }
+    longLatPoints.push([0, 90]);
+    longLatPoints.push([0, -90]);
+
+    function fmtLatLon([lon, lat]) {
+      if (lat === 90) return "N";
+      if (lat === -90) return "S";
+      const latStr = lat > 0 ? `${lat}°N` : lat < 0 ? `${-lat}°S` : "0°";
+      const lonStr = lon > 0 ? `${lon}°E` : lon < 0 ? `${-lon}°W` : "0°";
+      return `${latStr} ${lonStr}`;
+    }
+
+    const longLatLabels = svg.append("g")
+      .attr("id", "long-lat-labels")
+      .style("display", "none")
+      .style("pointer-events", "none");
+    longLatLabels.selectAll("text")
+      .data(longLatPoints)
+      .enter().append("text")
+      .text(fmtLatLon)
+      .attr("fill", "rgba(220, 240, 255, 0.85)")
+      .attr("font-size", 10)
+      .attr("font-family", "sans-serif")
+      .attr("text-anchor", "middle")
+      .attr("dominant-baseline", "central")
+      .attr("paint-order", "stroke")
+      .attr("stroke", "rgba(5, 10, 22, 0.85)")
+      .attr("stroke-width", 2.5);
+
+    let showLongLat = false;
+    function updateLongLatLabels() {
+      if (!showLongLat) return;
+      const r = projection.rotate();
+      const center = [-r[0], -r[1]];
+      longLatLabels.selectAll("text").each(function (d) {
+        const t = d3.select(this);
+        if (d3.geoDistance(d, center) > Math.PI / 2 - 0.05) {
+          t.style("display", "none");
+        } else {
+          const xy = projection(d);
+          t.style("display", null)
+            .attr("x", xy[0])
+            .attr("y", xy[1] - 7);
+        }
+      });
+    }
 
     const IS_TOUCH = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
 
@@ -447,7 +533,10 @@
       landPath.attr("d", path);
       lakesPath.attr("d", path);
       riversPath.attr("d", path);
+      longLatGridPath.attr("d", path);
+      bordersLayer.selectAll("path").attr("d", path);
       revealLayer.selectAll("path").attr("d", path);
+      updateLongLatLabels();
     }
 
     // ---- Data load (local files first, CDN fallback) ----
@@ -501,9 +590,102 @@
 
     landGeoHi = topojson.merge(worldTopo, worldTopo.objects.countries.geometries);
     landGeoLo = topojson.merge(worldTopoLow, worldTopoLow.objects.countries.geometries);
+    const countryBordersMesh = topojson.mesh(worldTopo, worldTopo.objects.countries);
     landPath.datum(landGeoLo);
     lakesPath.datum(lakesGeo);
     riversPath.datum(riversGeo);
+
+    const CANADIAN_CAPITALS = {
+      "Alberta": "Edmonton",
+      "British Columbia": "Victoria",
+      "Manitoba": "Winnipeg",
+      "New Brunswick": "Fredericton",
+      "Newfoundland and Labrador": "St. John's",
+      "Northwest Territories": "Yellowknife",
+      "Nova Scotia": "Halifax",
+      "Nunavut": "Iqaluit",
+      "Ontario": "Toronto",
+      "Prince Edward Island": "Charlottetown",
+      "Quebec": "Quebec City",
+      "Saskatchewan": "Regina",
+      "Yukon Territory": "Whitehorse",
+    };
+
+    const MEXICAN_CAPITALS = {
+      "Aguascalientes": "Aguascalientes",
+      "Baja California": "Mexicali",
+      "Baja California Sur": "La Paz",
+      "Campeche": "Campeche",
+      "Chiapas": "Tuxtla Gutiérrez",
+      "Chihuahua": "Chihuahua",
+      "Coahuila de Zaragoza": "Saltillo",
+      "Colima": "Colima",
+      "Distrito Federal": "Mexico City",
+      "Durango": "Durango",
+      "Guanajuato": "Guanajuato",
+      "Guerrero": "Chilpancingo",
+      "Hidalgo": "Pachuca",
+      "Jalisco": "Guadalajara",
+      "México": "Toluca",
+      "Michoacán de Ocampo": "Morelia",
+      "Morelos": "Cuernavaca",
+      "Nayarit": "Tepic",
+      "Nuevo León": "Monterrey",
+      "Oaxaca": "Oaxaca",
+      "Puebla": "Puebla",
+      "Querétaro": "Querétaro",
+      "Quintana Roo": "Chetumal",
+      "San Luis Potosí": "San Luis Potosí",
+      "Sinaloa": "Culiacán",
+      "Sonora": "Hermosillo",
+      "Tabasco": "Villahermosa",
+      "Tamaulipas": "Ciudad Victoria",
+      "Tlaxcala": "Tlaxcala",
+      "Veracruz de Ignacio de la Llave": "Xalapa",
+      "Yucatán": "Mérida",
+      "Zacatecas": "Zacatecas",
+    };
+
+    const BRAZILIAN_CAPITALS = {
+      "Acre": "Rio Branco",
+      "Alagoas": "Maceió",
+      "Amapá": "Macapá",
+      "Amazonas": "Manaus",
+      "Bahia": "Salvador",
+      "Ceará": "Fortaleza",
+      "Distrito Federal": "Brasília",
+      "Espírito Santo": "Vitória",
+      "Goiás": "Goiânia",
+      "Maranhão": "São Luís",
+      "Mato Grosso": "Cuiabá",
+      "Mato Grosso do Sul": "Campo Grande",
+      "Minas Gerais": "Belo Horizonte",
+      "Pará": "Belém",
+      "Paraíba": "João Pessoa",
+      "Paraná": "Curitiba",
+      "Pernambuco": "Recife",
+      "Piauí": "Teresina",
+      "Rio de Janeiro": "Rio de Janeiro",
+      "Rio Grande do Norte": "Natal",
+      "Rio Grande do Sul": "Porto Alegre",
+      "Rondônia": "Porto Velho",
+      "Roraima": "Boa Vista",
+      "Santa Catarina": "Florianópolis",
+      "São Paulo": "São Paulo",
+      "Sergipe": "Aracaju",
+      "Tocantins": "Palmas",
+    };
+
+    const AUSTRALIAN_CAPITALS = {
+      "New South Wales": "Sydney",
+      "Victoria": "Melbourne",
+      "Queensland": "Brisbane",
+      "Western Australia": "Perth",
+      "South Australia": "Adelaide",
+      "Tasmania": "Hobart",
+      "Australian Capital Territory": "Canberra",
+      "Northern Territory": "Darwin",
+    };
 
     const US_STATES_50 = new Set([
       "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
@@ -517,6 +699,8 @@
       "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington",
       "West Virginia", "Wisconsin", "Wyoming",
     ]);
+
+    const stateBordersMesh = topojson.mesh(statesTopo, statesTopo.objects.states);
 
     const stateFC = topojson.feature(statesTopo, statesTopo.objects.states);
     const stateFeatures = stateFC.features
@@ -551,7 +735,7 @@
         const newLat = Math.max(-90, Math.min(90, r[1] - event.dy * k));
         projection.rotate([r[0] + event.dx * k, newLat]);
         render();
-        if (mode === "info" && IS_TOUCH) updateInfo();
+        if ((mode === "info" || mode === "show-all") && IS_TOUCH) updateInfo();
         if (!pressMoved && pressStart) {
           if (Math.hypot(event.x - pressStart[0], event.y - pressStart[1]) > DRAG_THRESHOLD_PX) {
             pressMoved = true;
@@ -579,18 +763,120 @@
       const factor = Math.exp(-event.deltaY * WHEEL_ZOOM_SENSITIVITY);
       projection.scale(clampScale(projection.scale() * factor));
       render();
-      if (mode === "info" && IS_TOUCH) updateInfo();
+      if ((mode === "info" || mode === "show-all") && IS_TOUCH) updateInfo();
     }, { passive: false });
 
-    // ---- Quiz / Info / Tour state ----
-    let mode = "quiz";              // "quiz" | "info" | "tour"
-    let dataset = "countries";      // "countries" | "states"
+    // ---- Quiz / Info / Tour / Show-All state ----
+    let mode = "quiz";              // "quiz" | "info" | "tour" | "show-all"
+    let dataset = "countries";      // registry key
     let activeSubregions = new Set();
     let allOn = true;
     let pool = [];
     let bag = [];
     let target = null;
     let revealing = false;
+
+    // ---- Dataset registry ----
+    function computeView(features) {
+      const fc = { type: "FeatureCollection", features };
+      const [[lon0, lat0], [lon1, lat1]] = d3.geoBounds(fc);
+      const center = d3.geoCentroid(fc);
+      const spanLon = Math.abs(lon1 - lon0);
+      const spanLat = Math.abs(lat1 - lat0);
+      const span = Math.max(spanLon, spanLat * 1.4);
+      const K = 150;
+      const scale = Math.max(initialScale, Math.min(initialScale * 8, initialScale * (K / Math.max(span, 18))));
+      return { rotate: [-center[0], -center[1]], scale };
+    }
+
+    const datasets = new Map();
+    datasets.set("countries", {
+      label: "Countries",
+      ready: true,
+      features: countryFeatures,
+      borderMesh: countryBordersMesh,
+      view: { rotate: ROTATE_DEFAULT, scale: initialScale },
+    });
+    datasets.set("states", {
+      label: "US States",
+      ready: true,
+      features: stateFeatures,
+      borderMesh: stateBordersMesh,
+      view: { rotate: US_ROTATE, scale: initialScale * US_SCALE_MULT },
+    });
+    function registerSubdivision(key, opts) {
+      const entry = {
+        label: opts.label,
+        ready: false,
+        flag: opts.flag,
+        capitals: opts.capitals,
+      };
+      entry.load = async () => {
+        const geo = await loadJson(opts.localPath, opts.cdnUrl);
+        const nameKey = opts.nameKey || "name";
+        const filter = opts.filter || (() => true);
+        entry.features = geo.features
+          .filter(filter)
+          .map(f => {
+            const name = f.properties[nameKey];
+            f.properties = {
+              ...f.properties,
+              displayName: name,
+              flag: entry.flag,
+              capital: entry.capitals[name] || "",
+            };
+            return f;
+          });
+        entry.borderCollection = { type: "FeatureCollection", features: entry.features };
+        entry.view = computeView(entry.features);
+        for (const f of entry.features) {
+          searchIndex.push({
+            label: f.properties.displayName,
+            type: opts.searchType,
+            feature: f,
+          });
+        }
+        entry.ready = true;
+      };
+      datasets.set(key, entry);
+    }
+
+    registerSubdivision("canadian-provinces", {
+      label: "Canadian provinces & territories",
+      flag: "🇨🇦",
+      capitals: CANADIAN_CAPITALS,
+      localPath: "canada.geojson",
+      cdnUrl: "https://cdn.jsdelivr.net/gh/codeforgermany/click_that_hood@main/public/data/canada.geojson",
+      searchType: "canadian-province",
+    });
+    registerSubdivision("mexican-states", {
+      label: "Mexican states",
+      flag: "🇲🇽",
+      capitals: MEXICAN_CAPITALS,
+      localPath: "mexico.geojson",
+      cdnUrl: "https://cdn.jsdelivr.net/gh/strotgen/mexico-leaflet@master/states.geojson",
+      nameKey: "state_name",
+      searchType: "mexican-state",
+    });
+    registerSubdivision("brazilian-states", {
+      label: "Brazilian states",
+      flag: "🇧🇷",
+      capitals: BRAZILIAN_CAPITALS,
+      localPath: "brazil-states.geojson",
+      cdnUrl: "https://cdn.jsdelivr.net/gh/codeforgermany/click_that_hood@main/public/data/brazil-states.geojson",
+      searchType: "brazilian-state",
+    });
+    registerSubdivision("australian-states", {
+      label: "Australian states & territories",
+      flag: "🇦🇺",
+      capitals: AUSTRALIAN_CAPITALS,
+      localPath: "australia.geojson",
+      cdnUrl: "https://cdn.jsdelivr.net/gh/codeforgermany/click_that_hood@main/public/data/australia.geojson",
+      searchType: "australian-state-territory",
+      filter: (f) => f.properties.name !== "Other Territories",
+    });
+
+    const datasetSelect = document.getElementById("dataset-select");
 
     const TOUR_INTERVAL_MS = 4000;
     let tourTimer = null;
@@ -602,15 +888,17 @@
     const promptMeta = document.getElementById("prompt-meta");
 
     function datasetFeatures() {
-      return dataset === "states" ? stateFeatures : countryFeatures;
+      return datasets.get(dataset)?.features || [];
     }
 
     function filteredPool() {
-      if (dataset === "states") return stateFeatures.slice();
-      if (allOn) return countryFeatures.slice();
-      return countryFeatures.filter(f =>
-        activeSubregions.has(`${f.properties.continent}::${f.properties.subregion}`)
-      );
+      if (dataset === "countries") {
+        if (allOn) return countryFeatures.slice();
+        return countryFeatures.filter(f =>
+          activeSubregions.has(`${f.properties.continent}::${f.properties.subregion}`)
+        );
+      }
+      return datasetFeatures().slice();
     }
 
     function rebuildPool() {
@@ -667,6 +955,7 @@
       revealing = true;
       promptCard.classList.add("revealing");
       revealLayer.selectAll("path").remove();
+      // Clicked country in yellow
       revealLayer.append("path")
         .datum(hit)
         .attr("d", path)
@@ -674,6 +963,16 @@
         .attr("stroke", "#ffd54a")
         .attr("stroke-width", 1.5)
         .attr("stroke-linejoin", "round");
+      // If they missed, also reveal the target in green
+      if (hit !== target) {
+        revealLayer.append("path")
+          .datum(target)
+          .attr("d", path)
+          .attr("fill", "rgba(120, 220, 150, 0.22)")
+          .attr("stroke", "#7adba0")
+          .attr("stroke-width", 1.5)
+          .attr("stroke-linejoin", "round");
+      }
       showInfo("You clicked", hit);
 
       setTimeout(() => {
@@ -691,13 +990,14 @@
 
     function showInfoHighlight(feature) {
       if (lastInfoHit === feature) {
-        revealLayer.selectAll("path").attr("d", path);
+        revealLayer.selectAll(".info-hit").attr("d", path);
         return;
       }
       lastInfoHit = feature;
-      revealLayer.selectAll("path").remove();
+      revealLayer.selectAll(".info-hit").remove();
       if (feature) {
         revealLayer.append("path")
+          .attr("class", "info-hit")
           .datum(feature)
           .attr("d", path)
           .attr("fill", "rgba(120, 200, 255, 0.22)")
@@ -707,12 +1007,24 @@
       }
     }
 
-    function updateInfoAt(pos) {
-      if (mode !== "info") return;
-      const coords = projection.invert(pos);
-      const hint = IS_TOUCH ? "Move the reticle over a country" : "Hover over a country";
-      if (!coords || isNaN(coords[0]) || isNaN(coords[1])) {
+    function showInfoDefault() {
+      if (mode === "show-all") {
+        const entry = datasets.get(dataset);
+        const features = entry?.features || [];
+        promptLabel.textContent = "Showing all";
+        promptName.textContent = entry?.label || "";
+        promptMeta.textContent = `${features.length} regions`;
+      } else {
+        const hint = IS_TOUCH ? "Move the reticle over a country" : "Hover over a country";
         showEmpty("Info", hint);
+      }
+    }
+
+    function updateInfoAt(pos) {
+      if (mode !== "info" && mode !== "show-all") return;
+      const coords = projection.invert(pos);
+      if (!coords || isNaN(coords[0]) || isNaN(coords[1])) {
+        showInfoDefault();
         showInfoHighlight(null);
         return;
       }
@@ -721,24 +1033,25 @@
         showInfo("Info", hit);
         showInfoHighlight(hit);
       } else {
-        showEmpty("Info", "Open ocean");
+        showInfoDefault();
         showInfoHighlight(null);
       }
     }
 
     function updateInfo() {
-      if (mode !== "info") return;
+      if (mode !== "info" && mode !== "show-all") return;
       if (IS_TOUCH) {
         updateInfoAt([width / 2, height / 2]);
       } else if (pointerOverSvg && infoPos) {
         updateInfoAt(infoPos);
       } else {
-        showEmpty("Info", "Hover over a country");
+        showInfoDefault();
+        showInfoHighlight(null);
       }
     }
 
     svgEl.addEventListener("pointermove", (event) => {
-      if (mode !== "info") return;
+      if (mode !== "info" && mode !== "show-all") return;
       if (event.pointerType === "touch") return;
       const [x, y] = d3.pointer(event, svgEl);
       infoPos = [x, y];
@@ -752,7 +1065,7 @@
     svgEl.addEventListener("pointerleave", (event) => {
       if (event.pointerType === "touch") return;
       pointerOverSvg = false;
-      if (mode === "info") updateInfo();
+      if (mode === "info" || mode === "show-all") updateInfo();
     });
 
     // ---- Tour mode ----
@@ -868,7 +1181,7 @@
       if (zf !== 1) projection.scale(clampScale(projection.scale() * zf));
 
       render();
-      if (mode === "info") updateInfo();
+      if (mode === "info" || mode === "show-all") updateInfo();
       requestAnimationFrame(keyFrame);
     }
 
@@ -994,27 +1307,45 @@
     document.querySelectorAll(".mode-tab").forEach(btn => {
       btn.addEventListener("click", () => {
         const action = btn.dataset.action;
-        if (action === "countries" || action === "states") {
-          setDataset(action);
-        } else if (action === "info" || action === "tour") {
+        if (action === "info" || action === "tour" || action === "show-all") {
           setMode(mode === action ? "quiz" : action);
         }
       });
     });
 
-    function setDataset(newDataset) {
+    datasetSelect.addEventListener("change", (e) => {
+      setDataset(e.target.value);
+    });
+
+    async function setDataset(newDataset) {
       if (dataset === newDataset) return;
+      const entry = datasets.get(newDataset);
+      if (!entry) return;
+      const prev = dataset;
+      if (!entry.ready) {
+        promptLabel.textContent = "Loading";
+        promptName.textContent = entry.label;
+        promptMeta.textContent = "…";
+        try {
+          await entry.load();
+        } catch (err) {
+          console.error("Dataset load failed:", err);
+          promptLabel.textContent = "Error";
+          promptName.textContent = `Failed to load ${entry.label}`;
+          promptMeta.textContent = "Check your connection and try again.";
+          datasetSelect.value = prev;
+          return;
+        }
+      }
       dataset = newDataset;
       updateButtonHighlights();
       applyModeUI();
-      if (dataset === "states") {
-        animateTo(US_ROTATE, initialScale * US_SCALE_MULT);
-      } else {
-        animateTo(ROTATE_DEFAULT, initialScale);
-      }
+      animateTo(entry.view.rotate, entry.view.scale);
+      lastInfoHit = null;
       if (mode === "quiz") rebuildPool();
       else if (mode === "tour") { stopTour(); startTour(); }
-      else if (mode === "info") { lastInfoHit = null; updateInfo(); }
+      else if (mode === "info") updateInfo();
+      else if (mode === "show-all") { drawShowAll(); updateInfo(); }
     }
 
     function setMode(newMode) {
@@ -1024,21 +1355,38 @@
       updateButtonHighlights();
       applyModeUI();
       if (prev === "tour") stopTour();
-      if (prev === "info") lastInfoHit = null;
+      if (prev === "show-all") bordersLayer.selectAll("path").remove();
+      lastInfoHit = null;
       revealLayer.selectAll("path").remove();
       promptCard.classList.remove("revealing");
       revealing = false;
       target = null;
       if (mode === "info") updateInfo();
       else if (mode === "tour") startTour();
+      else if (mode === "show-all") { drawShowAll(); updateInfo(); }
       else if (mode === "quiz") rebuildPool();
+    }
+
+    function drawShowAll() {
+      bordersLayer.selectAll("path").remove();
+      const entry = datasets.get(dataset);
+      const datum = entry?.borderMesh || entry?.borderCollection;
+      if (datum) {
+        bordersLayer.append("path")
+          .datum(datum)
+          .attr("d", path)
+          .attr("fill", "none")
+          .attr("stroke", "rgba(220, 240, 230, 0.75)")
+          .attr("stroke-width", 0.7)
+          .attr("stroke-linejoin", "round");
+      }
+      showInfoDefault();
     }
 
     function updateButtonHighlights() {
       document.querySelectorAll(".mode-tab").forEach(b => b.classList.remove("active"));
-      const dsBtn = document.querySelector(`.mode-tab[data-action="${dataset}"]`);
-      if (dsBtn) dsBtn.classList.add("active");
-      if (mode === "info" || mode === "tour") {
+      datasetSelect.value = dataset;
+      if (mode === "info" || mode === "tour" || mode === "show-all") {
         const mBtn = document.querySelector(`.mode-tab[data-action="${mode}"]`);
         if (mBtn) mBtn.classList.add("active");
       }
@@ -1047,10 +1395,12 @@
     function applyModeUI() {
       document.getElementById("filter-section").style.display =
         dataset === "countries" ? "block" : "none";
-      svgEl.classList.toggle("info-mode", mode === "info");
-      reticle.style("display", (mode === "info" && IS_TOUCH) ? null : "none");
+      const hoverMode = mode === "info" || mode === "show-all";
+      svgEl.classList.toggle("info-mode", hoverMode);
+      reticle.style("display", (hoverMode && IS_TOUCH) ? null : "none");
       promptCard.classList.toggle("info", mode === "info");
       promptCard.classList.toggle("tour", mode === "tour");
+      promptCard.classList.toggle("show-all", mode === "show-all");
     }
 
     function animateTo(targetRotate, targetScale) {
@@ -1069,7 +1419,7 @@
         projection.rotate([startRotate[0] + lonDiff * e, startRotate[1] + latDiff * e]);
         projection.scale(startScale + scaleDiff * e);
         render();
-        if (mode === "info") updateInfo();
+        if (mode === "info" || mode === "show-all") updateInfo();
         if (t < 1) requestAnimationFrame(step);
       }
       requestAnimationFrame(step);
@@ -1089,6 +1439,20 @@
     // ---- Background color ----
     document.getElementById("bg-color").addEventListener("input", (e) => {
       document.body.style.background = e.target.value;
+    });
+
+    // ---- Visibility toggles ----
+    document.getElementById("rivers-toggle").addEventListener("change", (e) => {
+      riversPath.style("display", e.target.checked ? null : "none");
+    });
+    document.getElementById("water-grid-toggle").addEventListener("change", (e) => {
+      graticulePath.style("display", e.target.checked ? null : "none");
+    });
+    document.getElementById("long-lat-toggle").addEventListener("change", (e) => {
+      showLongLat = e.target.checked;
+      longLatGridPath.style("display", showLongLat ? null : "none");
+      longLatLabels.style("display", showLongLat ? null : "none");
+      if (showLongLat) updateLongLatLabels();
     });
 
     // ---- Invert controls ----
