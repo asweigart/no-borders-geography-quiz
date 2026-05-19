@@ -307,6 +307,9 @@
           <option value="irish-counties">Irish counties</option>
           <option value="japanese-prefectures">Japanese prefectures</option>
           <option value="chinese-provinces">Chinese provinces, regions &amp; municipalities</option>
+          <option value="south-korean-regions">South Korean provinces &amp; metropolitan cities</option>
+          <option value="indonesian-provinces">Indonesian provinces</option>
+          <option value="philippine-regions">Philippine regions</option>
         </select>
       </div>
     </section>
@@ -908,6 +911,85 @@
       "Yamaguchi": "Yamaguchi", "Yamanashi": "Kofu",
     };
 
+    const SOUTH_KOREAN_CAPITALS = {
+      "Busan": "Busan",
+      "Daegu": "Daegu",
+      "Daejeon": "Daejeon",
+      "Gangwon": "Chuncheon",
+      "Gwangju": "Gwangju",
+      "Gyeonggi": "Suwon",
+      "Incheon": "Incheon",
+      "Jeju": "Jeju City",
+      "North Chungcheong": "Cheongju",
+      "North Gyeongsang": "Andong",
+      "North Jeolla": "Jeonju",
+      "Sejong": "Sejong",
+      "Seoul": "Seoul",
+      "South Chungcheong": "Hongseong",
+      "South Gyeongsang": "Changwon",
+      "South Jeolla": "Muan",
+      "Ulsan": "Ulsan",
+    };
+
+    const INDONESIAN_CAPITALS = {
+      "Aceh": "Banda Aceh",
+      "Bali": "Denpasar",
+      "Bangka-Belitung Islands": "Pangkal Pinang",
+      "Banten": "Serang",
+      "Bengkulu": "Bengkulu",
+      "Central Java": "Semarang",
+      "Central Kalimantan": "Palangka Raya",
+      "Central Sulawesi": "Palu",
+      "East Java": "Surabaya",
+      "East Kalimantan": "Samarinda",
+      "East Nusa Tenggara": "Kupang",
+      "Gorontalo": "Gorontalo",
+      "Jakarta Special Capital Region": "Jakarta",
+      "Jambi": "Jambi",
+      "Lampung": "Bandar Lampung",
+      "Maluku": "Ambon",
+      "North Kalimantan": "Tanjung Selor",
+      "North Maluku": "Sofifi",
+      "North Sulawesi": "Manado",
+      "North Sumatra": "Medan",
+      "Papua": "Jayapura",
+      "Riau": "Pekanbaru",
+      "Riau Islands": "Tanjung Pinang",
+      "South Kalimantan": "Banjarmasin",
+      "South Sulawesi": "Makassar",
+      "South Sumatra": "Palembang",
+      "Southeast Sulawesi": "Kendari",
+      "Special Region of Yogyakarta": "Yogyakarta",
+      "West Java": "Bandung",
+      "West Kalimantan": "Pontianak",
+      "West Nusa Tenggara": "Mataram",
+      "West Papua": "Manokwari",
+      "West Sulawesi": "Mamuju",
+      "West Sumatra": "Padang",
+    };
+
+    // Philippine regions (17). Regional administrative centers.
+    // MIMAROPA and SOCCSKSARGEN are stylised acronyms — fixed via nameOverrides.
+    const PHILIPPINE_CAPITALS = {
+      "ARMM": "Cotabato City",
+      "Bicol Region": "Legazpi",
+      "CAR": "Baguio",
+      "Cagayan Valley": "Tuguegarao",
+      "Calabarzon": "Calamba",
+      "Caraga": "Butuan",
+      "Central Luzon": "San Fernando",
+      "Central Visayas": "Cebu City",
+      "Davao Region": "Davao City",
+      "Eastern Visayas": "Tacloban",
+      "Ilocos Region": "San Fernando",
+      "MIMAROPA": "Calapan",
+      "NCR": "Manila",
+      "Northern Mindanao": "Cagayan de Oro",
+      "SOCCSKSARGEN": "Koronadal",
+      "Western Visayas": "Iloilo City",
+      "Zamboanga Peninsula": "Pagadian",
+    };
+
     // Chinese provinces, regions, and municipalities (incl. SARs and Taiwan).
     // The source file has "Heilongjian" without the trailing g — nameOverrides
     // restores the correct spelling for display.
@@ -1247,6 +1329,34 @@
       cdnUrl: "https://cdn.jsdelivr.net/gh/codeforgermany/click_that_hood@main/public/data/china.geojson",
       nameOverrides: { "Heilongjian": "Heilongjiang" },
       searchType: "chinese-province",
+    });
+    registerSubdivision("south-korean-regions", {
+      label: "South Korean provinces & metropolitan cities",
+      flag: "🇰🇷",
+      capitals: SOUTH_KOREAN_CAPITALS,
+      localPath: "south-korea.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/KOR/ADM1/geoBoundaries-KOR-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      searchType: "south-korean-region",
+    });
+    registerSubdivision("indonesian-provinces", {
+      label: "Indonesian provinces",
+      flag: "🇮🇩",
+      capitals: INDONESIAN_CAPITALS,
+      localPath: "indonesia.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/IDN/ADM1/geoBoundaries-IDN-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      searchType: "indonesian-province",
+    });
+    registerSubdivision("philippine-regions", {
+      label: "Philippine regions",
+      flag: "🇵🇭",
+      capitals: PHILIPPINE_CAPITALS,
+      localPath: "philippines.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/PHL/ADM1/geoBoundaries-PHL-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      nameOverrides: { "Mimaropa": "MIMAROPA", "Soccsksargen": "SOCCSKSARGEN" },
+      searchType: "philippine-region",
     });
 
     const datasetSelect = document.getElementById("dataset-select");
