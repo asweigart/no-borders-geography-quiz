@@ -301,6 +301,9 @@
           <option value="swiss-cantons">Swiss cantons</option>
           <option value="french-regions">French regions</option>
           <option value="italian-regions">Italian regions</option>
+          <option value="spanish-communities">Spanish autonomous communities</option>
+          <option value="uk-countries">UK countries</option>
+          <option value="uk-ceremonial-counties">UK ceremonial counties</option>
         </select>
       </div>
     </section>
@@ -816,6 +819,35 @@
       "Mayotte": "Mamoudzou",
     };
 
+    const SPANISH_CAPITALS = {
+      "Andalucía": "Sevilla",
+      "Aragón": "Zaragoza",
+      "Canarias": "Las Palmas / Santa Cruz",
+      "Cantabria": "Santander",
+      "Castilla y León": "Valladolid",
+      "Castilla-La Mancha": "Toledo",
+      "Cataluña/Catalunya": "Barcelona",
+      "Ciudad Autónoma de Ceuta": "Ceuta",
+      "Ciudad Autónoma de Melilla": "Melilla",
+      "Comunidad Foral de Navarra": "Pamplona",
+      "Comunidad de Madrid": "Madrid",
+      "Comunitat Valenciana": "Valencia",
+      "Extremadura": "Mérida",
+      "Galicia": "Santiago de Compostela",
+      "Illes Balears": "Palma",
+      "La Rioja": "Logroño",
+      "País Vasco/Euskadi": "Vitoria-Gasteiz",
+      "Principado de Asturias": "Oviedo",
+      "Región de Murcia": "Murcia",
+    };
+
+    const UK_COUNTRY_CAPITALS = {
+      "England": "London",
+      "Scotland": "Edinburgh",
+      "Wales": "Cardiff",
+      "Northern Ireland": "Belfast",
+    };
+
     const ITALIAN_CAPITALS = {
       "Abruzzo": "L'Aquila",
       "Basilicata": "Potenza",
@@ -1081,6 +1113,34 @@
       localPath: "italy-regions.geojson",
       cdnUrl: "https://cdn.jsdelivr.net/gh/codeforgermany/click_that_hood@main/public/data/italy-regions.geojson",
       searchType: "italian-region",
+    });
+    registerSubdivision("spanish-communities", {
+      label: "Spanish autonomous communities",
+      flag: "🇪🇸",
+      capitals: SPANISH_CAPITALS,
+      localPath: "spain-comunidades.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/ESP/ADM1/geoBoundaries-ESP-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      searchType: "spanish-community",
+    });
+    registerSubdivision("uk-countries", {
+      label: "UK countries",
+      flag: "🇬🇧",
+      capitals: UK_COUNTRY_CAPITALS,
+      localPath: "uk-countries.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/GBR/ADM1/geoBoundaries-GBR-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      searchType: "uk-country",
+    });
+    registerSubdivision("uk-ceremonial-counties", {
+      label: "UK ceremonial counties",
+      flag: "🇬🇧",
+      capitals: {},
+      localPath: "uk-ceremonial-counties.geojson",
+      cdnUrl: "https://cdn.jsdelivr.net/gh/evansd/uk-ceremonial-counties@master/uk-ceremonial-counties.geojson",
+      nameKey: "county",
+      searchType: "uk-ceremonial-county",
+      filter: (f) => !!f.properties.county,
     });
 
     const datasetSelect = document.getElementById("dataset-select");
