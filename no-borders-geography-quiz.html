@@ -295,6 +295,9 @@
           <option value="mexican-states">Mexican states</option>
           <option value="brazilian-states">Brazilian states</option>
           <option value="australian-states">Australian states &amp; territories</option>
+          <option value="indian-states">Indian states &amp; union territories</option>
+          <option value="german-states">German states</option>
+          <option value="austrian-states">Austrian states</option>
         </select>
       </div>
     </section>
@@ -687,6 +690,79 @@
       "Northern Territory": "Darwin",
     };
 
+    // Indian list uses pre-2019 admin boundaries from click_that_hood;
+    // Jammu and Kashmir is still combined (Ladakh not yet split off);
+    // Dadra and Nagar Haveli + Daman and Diu are separate (merged in 2020);
+    // Pondicherry uses the older spelling (officially Puducherry).
+    const INDIAN_CAPITALS = {
+      "Andaman and Nicobar Islands": "Port Blair",
+      "Andhra Pradesh": "Amaravati",
+      "Assam": "Dispur",
+      "Bihar": "Patna",
+      "Chandigarh": "Chandigarh",
+      "Chhattisgarh": "Raipur",
+      "Dadra and Nagar Haveli": "Silvassa",
+      "Daman and Diu": "Daman",
+      "Delhi": "New Delhi",
+      "Goa": "Panaji",
+      "Gujarat": "Gandhinagar",
+      "Haryana": "Chandigarh",
+      "Himachal Pradesh": "Shimla",
+      "Jammu and Kashmir": "Srinagar",
+      "Jharkhand": "Ranchi",
+      "Karnataka": "Bengaluru",
+      "Kerala": "Thiruvananthapuram",
+      "Lakshadweep": "Kavaratti",
+      "Madhya Pradesh": "Bhopal",
+      "Maharashtra": "Mumbai",
+      "Manipur": "Imphal",
+      "Meghalaya": "Shillong",
+      "Mizoram": "Aizawl",
+      "Nagaland": "Kohima",
+      "Odisha": "Bhubaneswar",
+      "Pondicherry": "Puducherry",
+      "Punjab": "Chandigarh",
+      "Rajasthan": "Jaipur",
+      "Sikkim": "Gangtok",
+      "Tamil Nadu": "Chennai",
+      "Telangana": "Hyderabad",
+      "Tripura": "Agartala",
+      "Uttar Pradesh": "Lucknow",
+      "Uttarakhand": "Dehradun",
+      "West Bengal": "Kolkata",
+    };
+
+    const GERMAN_CAPITALS = {
+      "Baden-Württemberg": "Stuttgart",
+      "Bayern": "München",
+      "Berlin": "Berlin",
+      "Brandenburg": "Potsdam",
+      "Bremen": "Bremen",
+      "Hamburg": "Hamburg",
+      "Hessen": "Wiesbaden",
+      "Mecklenburg-Vorpommern": "Schwerin",
+      "Niedersachsen": "Hannover",
+      "Nordrhein-Westfalen": "Düsseldorf",
+      "Rheinland-Pfalz": "Mainz",
+      "Saarland": "Saarbrücken",
+      "Sachsen": "Dresden",
+      "Sachsen-Anhalt": "Magdeburg",
+      "Schleswig-Holstein": "Kiel",
+      "Thüringen": "Erfurt",
+    };
+
+    const AUSTRIAN_CAPITALS = {
+      "Burgenland": "Eisenstadt",
+      "Kärnten": "Klagenfurt",
+      "Niederösterreich": "St. Pölten",
+      "Oberösterreich": "Linz",
+      "Salzburg": "Salzburg",
+      "Steiermark": "Graz",
+      "Tirol": "Innsbruck",
+      "Vorarlberg": "Bregenz",
+      "Wien": "Wien",
+    };
+
     const US_STATES_50 = new Set([
       "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
       "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho",
@@ -874,6 +950,30 @@
       cdnUrl: "https://cdn.jsdelivr.net/gh/codeforgermany/click_that_hood@main/public/data/australia.geojson",
       searchType: "australian-state-territory",
       filter: (f) => f.properties.name !== "Other Territories",
+    });
+    registerSubdivision("indian-states", {
+      label: "Indian states & union territories",
+      flag: "🇮🇳",
+      capitals: INDIAN_CAPITALS,
+      localPath: "india.geojson",
+      cdnUrl: "https://cdn.jsdelivr.net/gh/codeforgermany/click_that_hood@main/public/data/india.geojson",
+      searchType: "indian-state",
+    });
+    registerSubdivision("german-states", {
+      label: "German states",
+      flag: "🇩🇪",
+      capitals: GERMAN_CAPITALS,
+      localPath: "germany.geojson",
+      cdnUrl: "https://cdn.jsdelivr.net/gh/codeforgermany/click_that_hood@main/public/data/germany.geojson",
+      searchType: "german-state",
+    });
+    registerSubdivision("austrian-states", {
+      label: "Austrian states",
+      flag: "🇦🇹",
+      capitals: AUSTRIAN_CAPITALS,
+      localPath: "austria.geojson",
+      cdnUrl: "https://cdn.jsdelivr.net/gh/codeforgermany/click_that_hood@main/public/data/austria-states.geojson",
+      searchType: "austrian-state",
     });
 
     const datasetSelect = document.getElementById("dataset-select");
