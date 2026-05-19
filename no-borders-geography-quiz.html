@@ -5,6 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>No Borders Geography Quiz</title>
 <style>
+  :root {
+    --ocean: #16335a;
+    --ocean-stroke: rgba(120, 170, 230, 0.25);
+    --land: #3d6b48;
+    --rivers: rgba(120, 170, 230, 0.55);
+    --hl-stroke: #7ec8ff;
+    --hl-fill: rgba(120, 200, 255, 0.22);
+    --clicked-stroke: #ffd54a;
+    --clicked-fill: rgba(255, 213, 74, 0.28);
+    --correct-stroke: #7adba0;
+    --correct-fill: rgba(120, 220, 150, 0.22);
+  }
+  #globe path.layer-ocean { fill: var(--ocean); stroke: var(--ocean-stroke); stroke-width: 0.6; }
+  #globe path.layer-land { fill: var(--land); stroke: none; }
+  #globe path.layer-lakes { fill: var(--ocean); stroke: var(--ocean-stroke); stroke-width: 0.4; }
+  #globe path.layer-rivers { fill: none; stroke: var(--rivers); stroke-width: 0.6; stroke-linejoin: round; stroke-linecap: round; }
+  #globe path.info-hit { fill: var(--hl-fill); stroke: var(--hl-stroke); stroke-width: 1.5; stroke-linejoin: round; }
+  #globe path.reveal-clicked { fill: var(--clicked-fill); stroke: var(--clicked-stroke); stroke-width: 1.5; stroke-linejoin: round; }
+  #globe path.reveal-correct { fill: var(--correct-fill); stroke: var(--correct-stroke); stroke-width: 1.5; stroke-linejoin: round; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
   body {
@@ -39,6 +58,7 @@
   #prompt-card.info { border-color: rgba(120, 180, 255, 0.4); }
   #prompt-card.tour { border-color: rgba(120, 220, 255, 0.5); }
   #prompt-card.show-all { border-color: rgba(180, 220, 170, 0.5); }
+  #prompt-card.hidden-card { display: none; }
   #prompt-label {
     font-size: 11px; opacity: 0.55; text-transform: uppercase;
     letter-spacing: 1.5px; margin-bottom: 6px;
@@ -101,11 +121,27 @@
     font-size: 28px; cursor: pointer; line-height: 1; padding: 0 4px;
   }
 
-  section.group { margin-bottom: 22px; }
-  section.group > .group-label {
-    display: block; font-size: 11px; opacity: 0.55;
-    text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px;
+  details.group { margin-bottom: 22px; }
+  details.group > summary.group-label {
+    list-style: none;
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer; user-select: none;
+    font-size: 11px; opacity: 0.55;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    margin-bottom: 8px;
+    padding: 2px 0;
+    transition: opacity 0.15s;
   }
+  details.group > summary.group-label:hover { opacity: 0.85; }
+  details.group > summary.group-label::-webkit-details-marker { display: none; }
+  details.group > summary.group-label::before {
+    content: "▸";
+    font-size: 9px;
+    width: 10px;
+    flex: 0 0 auto;
+  }
+  details.group[open] > summary.group-label::before { content: "▾"; }
+  details.group:not([open]) > summary.group-label { margin-bottom: 0; }
 
   select {
     width: 100%; padding: 9px 10px; font-size: 14px;
@@ -223,6 +259,13 @@
     cursor: pointer;
     padding: 4px;
   }
+  .color-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 4px 0;
+    font-size: 13px;
+  }
+  .color-row > span { flex: 1; }
+  .color-row .color-input { width: 60px; height: 28px; padding: 2px; flex: 0 0 auto; }
 
   .control-toggle {
     display: flex; align-items: center; gap: 10px;
@@ -267,72 +310,58 @@
       <button id="close-settings" aria-label="Close">×</button>
     </div>
 
-    <section class="group">
-      <label class="group-label" for="language-select">Language</label>
-      <select id="language-select">
-        <option value="en">English</option>
-      </select>
-    </section>
-
-    <section class="group">
-      <label class="group-label" for="find-input">Find</label>
+    <details class="group" open>
+      <summary class="group-label">Find</summary>
       <div class="find-wrapper">
         <input type="text" id="find-input" placeholder="Search countries or states…" autocomplete="off" spellcheck="false">
         <ul id="find-results" hidden></ul>
       </div>
-    </section>
+    </details>
 
-    <section class="group">
-      <span class="group-label">Mode</span>
+    <details class="group" open>
+      <summary class="group-label">Mode</summary>
       <div class="mode-tabs">
         <button class="mode-tab" data-action="info">Info</button>
         <button class="mode-tab" data-action="show-all">Show All</button>
         <button class="mode-tab" data-action="tour">Tour</button>
-        <select id="dataset-select">
-          <option value="countries">Countries</option>
-          <option value="states">US States</option>
-          <option value="canadian-provinces">Canadian provinces &amp; territories</option>
-          <option value="mexican-states">Mexican states</option>
-          <option value="brazilian-states">Brazilian states</option>
-          <option value="australian-states">Australian states &amp; territories</option>
-          <option value="indian-states">Indian states &amp; union territories</option>
-          <option value="german-states">German states</option>
-          <option value="austrian-states">Austrian states</option>
-          <option value="swiss-cantons">Swiss cantons</option>
-          <option value="french-regions">French regions</option>
-          <option value="italian-regions">Italian regions</option>
-          <option value="spanish-communities">Spanish autonomous communities</option>
-          <option value="uk-countries">UK countries</option>
-          <option value="uk-ceremonial-counties">UK ceremonial counties</option>
-          <option value="irish-counties">Irish counties</option>
-          <option value="japanese-prefectures">Japanese prefectures</option>
-          <option value="chinese-provinces">Chinese provinces, regions &amp; municipalities</option>
-          <option value="south-korean-regions">South Korean provinces &amp; metropolitan cities</option>
-          <option value="indonesian-provinces">Indonesian provinces</option>
-          <option value="philippine-regions">Philippine regions</option>
-          <option value="argentine-provinces">Argentine provinces</option>
-          <option value="chilean-regions">Chilean regions</option>
-          <option value="colombian-departments">Colombian departments</option>
-        </select>
+        <select id="dataset-select"></select>
       </div>
-    </section>
+    </details>
 
-    <section class="group" id="filter-section">
-      <span class="group-label">Filter</span>
-      <label class="master-toggle">
-        <input type="checkbox" id="all-toggle" checked>
-        <span>All Countries</span>
+    <details class="group">
+      <summary class="group-label">Language</summary>
+      <select id="language-select">
+        <option value="en">English</option>
+      </select>
+    </details>
+
+    <details class="group">
+      <summary class="group-label">Colors</summary>
+      <label class="color-row"><span>Background</span>
+        <input type="color" id="bg-color" value="#050912" class="color-input">
       </label>
-      <div id="continent-tree"></div>
-    </section>
+      <label class="color-row"><span>Land</span>
+        <input type="color" id="land-color" value="#3d6b48" class="color-input">
+      </label>
+      <label class="color-row"><span>Ocean</span>
+        <input type="color" id="ocean-color" value="#16335a" class="color-input">
+      </label>
+      <label class="color-row"><span>Rivers</span>
+        <input type="color" id="river-color" value="#78aae6" class="color-input">
+      </label>
+      <label class="color-row"><span>Highlight</span>
+        <input type="color" id="highlight-color" value="#7ec8ff" class="color-input">
+      </label>
+      <label class="color-row"><span>Clicked country</span>
+        <input type="color" id="clicked-color" value="#ffd54a" class="color-input">
+      </label>
+      <label class="color-row"><span>Correct country</span>
+        <input type="color" id="correct-color" value="#7adba0" class="color-input">
+      </label>
+    </details>
 
-    <section class="group">
-      <label class="group-label" for="bg-color">Background Color</label>
-      <input type="color" id="bg-color" value="#050912" class="color-input">
-    </section>
-
-    <section class="group">
-      <span class="group-label">Options</span>
+    <details class="group">
+      <summary class="group-label">Options</summary>
       <label class="control-toggle">
         <input type="checkbox" id="rivers-toggle" checked>
         <span>Rivers</span>
@@ -353,7 +382,7 @@
         <input type="checkbox" id="invert-v" checked>
         <span>Invert Vertical</span>
       </label>
-    </section>
+    </details>
   </aside>
 
   <script src="d3.v7.min.js"></script>
@@ -417,9 +446,7 @@
 
     const oceanPath = svg.append("path")
       .datum({ type: "Sphere" })
-      .attr("fill", "#16335a")
-      .attr("stroke", "rgba(120,170,230,0.25)")
-      .attr("stroke-width", 0.6);
+      .attr("class", "layer-ocean");
 
     const graticulePath = svg.append("path")
       .datum(d3.geoGraticule10())
@@ -427,21 +454,11 @@
       .attr("stroke", "rgba(255,255,255,0.06)")
       .attr("stroke-width", 0.5);
 
-    const landPath = svg.append("path")
-      .attr("fill", "#3d6b48")
-      .attr("stroke", "none");
+    const landPath = svg.append("path").attr("class", "layer-land");
 
-    const lakesPath = svg.append("path")
-      .attr("fill", "#16335a")
-      .attr("stroke", "rgba(120,170,230,0.3)")
-      .attr("stroke-width", 0.4);
+    const lakesPath = svg.append("path").attr("class", "layer-lakes");
 
-    const riversPath = svg.append("path")
-      .attr("fill", "none")
-      .attr("stroke", "rgba(120,170,230,0.55)")
-      .attr("stroke-width", 0.6)
-      .attr("stroke-linejoin", "round")
-      .attr("stroke-linecap", "round");
+    const riversPath = svg.append("path").attr("class", "layer-rivers");
 
     // Long/lat overlay grid + labels (off by default)
     const longLatGraticule = d3.geoGraticule().step([30, 30])();
@@ -1057,6 +1074,187 @@
       "Vichada": "Puerto Carreño",
     };
 
+    const PERUVIAN_CAPITALS = {
+      "Amazonas": "Chachapoyas",
+      "Ancash": "Huaraz",
+      "Apurímac": "Abancay",
+      "Arequipa": "Arequipa",
+      "Ayacucho": "Ayacucho",
+      "Cajamarca": "Cajamarca",
+      "Callao": "Callao",
+      "Cusco": "Cusco",
+      "Huancavelica": "Huancavelica",
+      "Huánuco": "Huánuco",
+      "Ica": "Ica",
+      "Junín": "Huancayo",
+      "La Libertad": "Trujillo",
+      "Lambayeque": "Chiclayo",
+      "Lima": "Lima",
+      "Loreto": "Iquitos",
+      "Madre de Dios": "Puerto Maldonado",
+      "Moquegua": "Moquegua",
+      "Pasco": "Cerro de Pasco",
+      "Piura": "Piura",
+      "Puno": "Puno",
+      "San Martín": "Moyobamba",
+      "Tacna": "Tacna",
+      "Tumbes": "Tumbes",
+      "Ucayali": "Pucallpa",
+    };
+
+    // Source has "Nothern Cape" (missing r); fixed via nameOverrides on the registry.
+    const SOUTH_AFRICAN_CAPITALS = {
+      "Eastern Cape": "Bhisho",
+      "Free State": "Bloemfontein",
+      "Gauteng": "Johannesburg",
+      "KwaZulu-Natal": "Pietermaritzburg",
+      "Limpopo": "Polokwane",
+      "Mpumalanga": "Mbombela",
+      "North West": "Mahikeng",
+      "Northern Cape": "Kimberley",
+      "Western Cape": "Cape Town",
+    };
+
+    // Pre-2020 admin layout (subsequent reforms added Sidama, South West, etc.).
+    // Source has misspellings "Beneshangul Gumu" and "Hareri" — fixed via overrides.
+    const ETHIOPIAN_CAPITALS = {
+      "Addis Ababa": "Addis Ababa",
+      "Afar": "Semera",
+      "Amhara": "Bahir Dar",
+      "Benishangul-Gumuz": "Asosa",
+      "Dire Dawa": "Dire Dawa",
+      "Gambela": "Gambela",
+      "Harari": "Harar",
+      "Oromia": "Addis Ababa",
+      "SNNPR": "Hawassa",
+      "Somali": "Jigjiga",
+      "Tigray": "Mekelle",
+    };
+
+    // 47 counties. "Tharaka" in the file is the truncated form of Tharaka-Nithi.
+    const KENYAN_CAPITALS = {
+      "Baringo": "Kabarnet",
+      "Bomet": "Bomet",
+      "Bungoma": "Bungoma",
+      "Busia": "Busia",
+      "Elgeyo-Marakwet": "Iten",
+      "Embu": "Embu",
+      "Garissa": "Garissa",
+      "Homa Bay": "Homa Bay",
+      "Isiolo": "Isiolo",
+      "Kajiado": "Kajiado",
+      "Kakamega": "Kakamega",
+      "Kericho": "Kericho",
+      "Kiambu": "Kiambu",
+      "Kilifi": "Kilifi",
+      "Kirinyaga": "Kerugoya",
+      "Kisii": "Kisii",
+      "Kisumu": "Kisumu",
+      "Kitui": "Kitui",
+      "Kwale": "Kwale",
+      "Laikipia": "Nanyuki",
+      "Lamu": "Lamu",
+      "Machakos": "Machakos",
+      "Makueni": "Wote",
+      "Mandera": "Mandera",
+      "Marsabit": "Marsabit",
+      "Meru": "Meru",
+      "Migori": "Migori",
+      "Mombasa": "Mombasa",
+      "Murang'a": "Murang'a",
+      "Nairobi": "Nairobi",
+      "Nakuru": "Nakuru",
+      "Nandi": "Kapsabet",
+      "Narok": "Narok",
+      "Nyamira": "Nyamira",
+      "Nyandarua": "Ol Kalou",
+      "Nyeri": "Nyeri",
+      "Samburu": "Maralal",
+      "Siaya": "Siaya",
+      "Taita Taveta": "Mwatate",
+      "Tana River": "Hola",
+      "Tharaka-Nithi": "Chuka",
+      "Trans Nzoia": "Kitale",
+      "Turkana": "Lodwar",
+      "Uasin Gishu": "Eldoret",
+      "Vihiga": "Vihiga",
+      "Wajir": "Wajir",
+      "West Pokot": "Kapenguria",
+    };
+
+    const TANZANIAN_CAPITALS = {
+      "Arusha": "Arusha",
+      "Dar es Salaam": "Dar es Salaam",
+      "Dodoma": "Dodoma",
+      "Geita": "Geita",
+      "Iringa": "Iringa",
+      "Kagera": "Bukoba",
+      "Katavi": "Mpanda",
+      "Kigoma": "Kigoma",
+      "Kilimanjaro": "Moshi",
+      "Lindi": "Lindi",
+      "Manyara": "Babati",
+      "Mara": "Musoma",
+      "Mbeya": "Mbeya",
+      "Morogoro": "Morogoro",
+      "Mtwara": "Mtwara",
+      "Mwanza": "Mwanza",
+      "Njombe": "Njombe",
+      "North Pemba": "Wete",
+      "Pwani": "Kibaha",
+      "Rukwa": "Sumbawanga",
+      "Ruvuma": "Songea",
+      "Shinyanga": "Shinyanga",
+      "Simiyu": "Bariadi",
+      "Singida": "Singida",
+      "South Pemba": "Chake-Chake",
+      "Tabora": "Tabora",
+      "Tanga": "Tanga",
+      "Zanzibar North": "Mkokotoni",
+      "Zanzibar South & Central": "Koani",
+      "Zanzibar Urban/West": "Zanzibar City",
+    };
+
+    const NIGERIAN_CAPITALS = {
+      "Abia": "Umuahia",
+      "Abuja Federal Capital Territory": "Abuja",
+      "Adamawa": "Yola",
+      "Akwa Ibom": "Uyo",
+      "Anambra": "Awka",
+      "Bauchi": "Bauchi",
+      "Bayelsa": "Yenagoa",
+      "Benue": "Makurdi",
+      "Borno": "Maiduguri",
+      "Cross River": "Calabar",
+      "Delta": "Asaba",
+      "Ebonyi": "Abakaliki",
+      "Edo": "Benin City",
+      "Ekiti": "Ado-Ekiti",
+      "Enugu": "Enugu",
+      "Gombe": "Gombe",
+      "Imo": "Owerri",
+      "Jigawa": "Dutse",
+      "Kaduna": "Kaduna",
+      "Kano": "Kano",
+      "Katsina": "Katsina",
+      "Kebbi": "Birnin Kebbi",
+      "Kogi": "Lokoja",
+      "Kwara": "Ilorin",
+      "Lagos": "Ikeja",
+      "Nasarawa": "Lafia",
+      "Niger": "Minna",
+      "Ogun": "Abeokuta",
+      "Ondo": "Akure",
+      "Osun": "Osogbo",
+      "Oyo": "Ibadan",
+      "Plateau": "Jos",
+      "Rivers": "Port Harcourt",
+      "Sokoto": "Sokoto",
+      "Taraba": "Jalingo",
+      "Yobe": "Damaturu",
+      "Zamfara": "Gusau",
+    };
+
     // Philippine regions (17). Regional administrative centers.
     // MIMAROPA and SOCCSKSARGEN are stylised acronyms — fixed via nameOverrides.
     const PHILIPPINE_CAPITALS = {
@@ -1186,8 +1384,6 @@
     // ---- Quiz / Info / Tour / Show-All state ----
     let mode = "quiz";              // "quiz" | "info" | "tour" | "show-all"
     let dataset = "countries";      // registry key
-    let activeSubregions = new Set();
-    let allOn = true;
     let pool = [];
     let bag = [];
     let target = null;
@@ -1208,12 +1404,33 @@
 
     const datasets = new Map();
     datasets.set("countries", {
-      label: "Countries",
+      label: "All Countries",
       ready: true,
       features: countryFeatures,
       borderMesh: countryBordersMesh,
       view: { rotate: ROTATE_DEFAULT, scale: initialScale },
     });
+
+    // Continent filters: derived from countryFeatures
+    const CONTINENT_ORDER = [
+      "Africa", "Antarctica", "Asia", "Europe",
+      "North America", "Oceania", "South America"
+    ];
+    function regionSlug(s) {
+      return "region-" + s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    }
+    for (const continent of CONTINENT_ORDER) {
+      const features = countryFeatures.filter(f => f.properties.continent === continent);
+      if (features.length === 0) continue;
+      datasets.set(regionSlug(continent), {
+        label: continent,
+        ready: true,
+        features,
+        borderCollection: { type: "FeatureCollection", features },
+        view: computeView(features),
+      });
+    }
+
     datasets.set("states", {
       label: "US States",
       ready: false,
@@ -1473,8 +1690,75 @@
       nameKey: "shapeName",
       searchType: "colombian-department",
     });
+    registerSubdivision("peruvian-regions", {
+      label: "Peruvian regions",
+      flag: "🇵🇪",
+      capitals: PERUVIAN_CAPITALS,
+      localPath: "peru.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/PER/ADM1/geoBoundaries-PER-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      searchType: "peruvian-region",
+    });
+    registerSubdivision("south-african-provinces", {
+      label: "South African provinces",
+      flag: "🇿🇦",
+      capitals: SOUTH_AFRICAN_CAPITALS,
+      localPath: "south-africa.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/ZAF/ADM1/geoBoundaries-ZAF-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      nameOverrides: { "Nothern Cape": "Northern Cape" },
+      searchType: "south-african-province",
+    });
+    registerSubdivision("nigerian-states", {
+      label: "Nigerian states",
+      flag: "🇳🇬",
+      capitals: NIGERIAN_CAPITALS,
+      localPath: "nigeria.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/NGA/ADM1/geoBoundaries-NGA-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      searchType: "nigerian-state",
+    });
+    registerSubdivision("ethiopian-regions", {
+      label: "Ethiopian regions",
+      flag: "🇪🇹",
+      capitals: ETHIOPIAN_CAPITALS,
+      localPath: "ethiopia.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/ETH/ADM1/geoBoundaries-ETH-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      nameOverrides: {
+        "Beneshangul Gumu": "Benishangul-Gumuz",
+        "Hareri": "Harari",
+      },
+      searchType: "ethiopian-region",
+    });
+    registerSubdivision("kenyan-counties", {
+      label: "Kenyan counties",
+      flag: "🇰🇪",
+      capitals: KENYAN_CAPITALS,
+      localPath: "kenya.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/KEN/ADM1/geoBoundaries-KEN-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      nameOverrides: { "Tharaka": "Tharaka-Nithi" },
+      searchType: "kenyan-county",
+    });
+    registerSubdivision("tanzanian-regions", {
+      label: "Tanzanian regions",
+      flag: "🇹🇿",
+      capitals: TANZANIAN_CAPITALS,
+      localPath: "tanzania.geojson",
+      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/TZA/ADM1/geoBoundaries-TZA-ADM1_simplified.geojson",
+      nameKey: "shapeName",
+      searchType: "tanzanian-region",
+    });
 
     const datasetSelect = document.getElementById("dataset-select");
+    // Populate the dropdown from the registry in insertion order.
+    for (const [key, entry] of datasets) {
+      const opt = document.createElement("option");
+      opt.value = key;
+      opt.textContent = entry.label;
+      datasetSelect.appendChild(opt);
+    }
 
     const TOUR_INTERVAL_MS = 4000;
     let tourTimer = null;
@@ -1490,12 +1774,6 @@
     }
 
     function filteredPool() {
-      if (dataset === "countries") {
-        if (allOn) return countryFeatures.slice();
-        return countryFeatures.filter(f =>
-          activeSubregions.has(`${f.properties.continent}::${f.properties.subregion}`)
-        );
-      }
       return datasetFeatures().slice();
     }
 
@@ -1530,6 +1808,7 @@
     }
 
     function showInfo(labelText, feature) {
+      promptCard.classList.remove("hidden-card");
       promptLabel.textContent = labelText;
       const flag = feature.properties.flag || "";
       promptName.textContent = `${flag} ${feature.properties.displayName}`.trim();
@@ -1553,23 +1832,17 @@
       revealing = true;
       promptCard.classList.add("revealing");
       revealLayer.selectAll("path").remove();
-      // Clicked country in yellow
+      // Clicked country
       revealLayer.append("path")
+        .attr("class", "reveal-clicked")
         .datum(hit)
-        .attr("d", path)
-        .attr("fill", "rgba(255, 213, 74, 0.28)")
-        .attr("stroke", "#ffd54a")
-        .attr("stroke-width", 1.5)
-        .attr("stroke-linejoin", "round");
-      // If they missed, also reveal the target in green
+        .attr("d", path);
+      // If they missed, also reveal the correct country
       if (hit !== target) {
         revealLayer.append("path")
+          .attr("class", "reveal-correct")
           .datum(target)
-          .attr("d", path)
-          .attr("fill", "rgba(120, 220, 150, 0.22)")
-          .attr("stroke", "#7adba0")
-          .attr("stroke-width", 1.5)
-          .attr("stroke-linejoin", "round");
+          .attr("d", path);
       }
       showInfo("You clicked", hit);
 
@@ -1597,24 +1870,20 @@
         revealLayer.append("path")
           .attr("class", "info-hit")
           .datum(feature)
-          .attr("d", path)
-          .attr("fill", "rgba(120, 200, 255, 0.22)")
-          .attr("stroke", "#7ec8ff")
-          .attr("stroke-width", 1.5)
-          .attr("stroke-linejoin", "round");
+          .attr("d", path);
       }
     }
 
     function showInfoDefault() {
       if (mode === "show-all") {
+        promptCard.classList.remove("hidden-card");
         const entry = datasets.get(dataset);
         const features = entry?.features || [];
         promptLabel.textContent = "Showing all";
         promptName.textContent = entry?.label || "";
         promptMeta.textContent = `${features.length} regions`;
-      } else {
-        const hint = IS_TOUCH ? "Move the reticle over a country" : "Hover over a country";
-        showEmpty("Info", hint);
+      } else if (mode === "info") {
+        promptCard.classList.add("hidden-card");
       }
     }
 
@@ -1794,113 +2063,6 @@
       panel.setAttribute("aria-hidden", "true");
     });
 
-    // ---- Build continent tree ----
-    const taxonomy = {};
-    for (const f of countryFeatures) {
-      const c = f.properties.continent;
-      const s = f.properties.subregion;
-      if (!taxonomy[c]) taxonomy[c] = new Set();
-      taxonomy[c].add(s);
-    }
-
-    const CONTINENT_ORDER = [
-      "Africa", "Antarctica", "Asia", "Europe",
-      "North America", "Oceania", "South America"
-    ];
-
-    const tree = document.getElementById("continent-tree");
-    for (const continent of CONTINENT_ORDER) {
-      if (!taxonomy[continent]) continue;
-      const div = document.createElement("div");
-      div.className = "continent";
-
-      const header = document.createElement("div");
-      header.className = "continent-header";
-
-      const expandBtn = document.createElement("button");
-      expandBtn.className = "continent-toggle";
-      expandBtn.textContent = "▸";
-      expandBtn.addEventListener("click", () => {
-        const expanded = div.classList.toggle("expanded");
-        expandBtn.textContent = expanded ? "▾" : "▸";
-      });
-      header.appendChild(expandBtn);
-
-      const cLabel = document.createElement("label");
-      cLabel.className = "continent-label";
-      const cBox = document.createElement("input");
-      cBox.type = "checkbox";
-      cBox.checked = true;
-      cBox.dataset.continent = continent;
-      const cText = document.createElement("span");
-      cText.textContent = continent;
-      cLabel.appendChild(cBox);
-      cLabel.appendChild(cText);
-      header.appendChild(cLabel);
-      div.appendChild(header);
-
-      const sublist = document.createElement("div");
-      sublist.className = "subregion-list";
-      const subs = [...taxonomy[continent]].sort();
-      for (const sub of subs) {
-        const subLabel = document.createElement("label");
-        subLabel.className = "subregion";
-        const subBox = document.createElement("input");
-        subBox.type = "checkbox";
-        subBox.checked = true;
-        subBox.dataset.continent = continent;
-        subBox.dataset.subregion = sub;
-        const subText = document.createElement("span");
-        subText.textContent = sub;
-        subLabel.appendChild(subBox);
-        subLabel.appendChild(subText);
-        sublist.appendChild(subLabel);
-        activeSubregions.add(`${continent}::${sub}`);
-        subBox.addEventListener("change", syncFromTree);
-      }
-      div.appendChild(sublist);
-      tree.appendChild(div);
-
-      cBox.addEventListener("change", (e) => {
-        sublist.querySelectorAll("input[type=checkbox]").forEach(child => {
-          child.checked = e.target.checked;
-        });
-        syncFromTree();
-      });
-    }
-
-    function syncFromTree() {
-      activeSubregions = new Set();
-      tree.querySelectorAll("input[data-subregion]").forEach(cb => {
-        if (cb.checked) {
-          activeSubregions.add(`${cb.dataset.continent}::${cb.dataset.subregion}`);
-        }
-      });
-      tree.querySelectorAll(".continent").forEach(div => {
-        const contBox = div.querySelector("input[data-continent]:not([data-subregion])");
-        const childBoxes = div.querySelectorAll("input[data-subregion]");
-        const checked = [...childBoxes].filter(c => c.checked).length;
-        contBox.checked = checked === childBoxes.length;
-        contBox.indeterminate = checked > 0 && checked < childBoxes.length;
-      });
-      const allBox = document.getElementById("all-toggle");
-      const allSubs = tree.querySelectorAll("input[data-subregion]");
-      const checkedSubs = tree.querySelectorAll("input[data-subregion]:checked");
-      allBox.checked = checkedSubs.length === allSubs.length;
-      allBox.indeterminate = checkedSubs.length > 0 && checkedSubs.length < allSubs.length;
-      allOn = checkedSubs.length === allSubs.length;
-      if (mode === "quiz") rebuildPool();
-      else if (mode === "tour") tourBag = []; // refresh from new pool on next tick
-    }
-
-    document.getElementById("all-toggle").addEventListener("change", (e) => {
-      tree.querySelectorAll("input[type=checkbox]").forEach(cb => {
-        cb.checked = e.target.checked;
-        cb.indeterminate = false;
-      });
-      syncFromTree();
-    });
-
     // ---- Mode / dataset buttons ----
     document.querySelectorAll(".mode-tab").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -1957,6 +2119,7 @@
       lastInfoHit = null;
       revealLayer.selectAll("path").remove();
       promptCard.classList.remove("revealing");
+      promptCard.classList.remove("hidden-card");
       revealing = false;
       target = null;
       if (mode === "info") updateInfo();
@@ -1991,8 +2154,6 @@
     }
 
     function applyModeUI() {
-      document.getElementById("filter-section").style.display =
-        dataset === "countries" ? "block" : "none";
       const hoverMode = mode === "info" || mode === "show-all";
       svgEl.classList.toggle("info-mode", hoverMode);
       reticle.style("display", (hoverMode && IS_TOUCH) ? null : "none");
@@ -2034,10 +2195,46 @@
       if (mode === "info") updateInfo();
     });
 
-    // ---- Background color ----
+    // ---- Color settings ----
+    function withAlpha(hex, alpha) {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r},${g},${b},${alpha})`;
+    }
     document.getElementById("bg-color").addEventListener("input", (e) => {
       document.body.style.background = e.target.value;
     });
+    function bindLayerColor(inputId, varName, alpha) {
+      document.getElementById(inputId).addEventListener("input", (e) => {
+        const hex = e.target.value;
+        document.documentElement.style.setProperty(varName, hex);
+        if (alpha !== undefined) {
+          document.documentElement.style.setProperty(varName + "-alpha", withAlpha(hex, alpha));
+        }
+      });
+    }
+    // Land/Ocean/Rivers are simple fills/strokes — set the var directly.
+    document.getElementById("land-color").addEventListener("input", (e) => {
+      document.documentElement.style.setProperty("--land", e.target.value);
+    });
+    document.getElementById("ocean-color").addEventListener("input", (e) => {
+      document.documentElement.style.setProperty("--ocean", e.target.value);
+      document.documentElement.style.setProperty("--ocean-stroke", withAlpha(e.target.value, 0.25));
+    });
+    document.getElementById("river-color").addEventListener("input", (e) => {
+      document.documentElement.style.setProperty("--rivers", e.target.value);
+    });
+    // Highlight / clicked / correct: set stroke directly + a translucent fill derived from it.
+    function bindHighlightColor(inputId, strokeVar, fillVar, alpha) {
+      document.getElementById(inputId).addEventListener("input", (e) => {
+        document.documentElement.style.setProperty(strokeVar, e.target.value);
+        document.documentElement.style.setProperty(fillVar, withAlpha(e.target.value, alpha));
+      });
+    }
+    bindHighlightColor("highlight-color", "--hl-stroke", "--hl-fill", 0.22);
+    bindHighlightColor("clicked-color", "--clicked-stroke", "--clicked-fill", 0.28);
+    bindHighlightColor("correct-color", "--correct-stroke", "--correct-fill", 0.22);
 
     // ---- Visibility toggles ----
     document.getElementById("rivers-toggle").addEventListener("change", (e) => {
