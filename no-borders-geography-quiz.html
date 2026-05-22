@@ -1902,6 +1902,19 @@
         entry.ready = true;
       },
     });
+    // Reverse polygon ring winding in-place. d3 uses spherical geometry where
+    // backwards-wound rings get interpreted as covering the rest of the globe,
+    // which breaks geoContains and geoBounds. Some source files (e.g.,
+    // geoBoundaries ESP ADM1) have the opposite winding convention.
+    function reverseRings(geom) {
+      if (!geom) return;
+      if (geom.type === "Polygon") {
+        geom.coordinates = geom.coordinates.map(r => r.slice().reverse());
+      } else if (geom.type === "MultiPolygon") {
+        geom.coordinates = geom.coordinates.map(p => p.map(r => r.slice().reverse()));
+      }
+    }
+
     function registerSubdivision(key, opts) {
       const entry = {
         label: opts.label,
@@ -1926,10 +1939,24 @@
               flag: entry.flag,
               capital: entry.capitals[name] || entry.capitals[rawName] || "",
             };
+            if (opts.reverseWinding) reverseRings(f.geometry);
             return f;
           });
+        // Defence in depth: if geoBounds reports the whole globe, the polygon
+        // rings are wound the wrong way (a spherical-geometry artifact). Flip
+        // every feature and retry. Catches sources we didn't pre-flag.
+        if (entry.features.length) {
+          const fc = { type: "FeatureCollection", features: entry.features };
+          const [[lo0, la0], [lo1, la1]] = d3.geoBounds(fc);
+          if (Math.abs(lo1 - lo0) > 359 && Math.abs(la1 - la0) > 179) {
+            for (const f of entry.features) reverseRings(f.geometry);
+          }
+        }
         entry.borderCollection = { type: "FeatureCollection", features: entry.features };
-        entry.view = computeView(entry.features);
+        const viewFeatures = opts.viewFilter
+          ? entry.features.filter(opts.viewFilter)
+          : entry.features;
+        entry.view = computeView(viewFeatures.length ? viewFeatures : entry.features);
         for (const f of entry.features) {
           searchIndex.push({
             label: f.properties.displayName,
@@ -2008,6 +2035,7 @@
       cdnUrl: "https://cdn.jsdelivr.net/gh/codeforgermany/click_that_hood@main/public/data/switzerland.geojson",
       searchType: "swiss-canton",
     });
+    const FRENCH_OVERSEAS = new Set(["Guadeloupe", "Guyane", "La Réunion", "Martinique", "Mayotte"]);
     registerSubdivision("french-regions", {
       label: "French regions",
       flag: "🇫🇷",
@@ -2015,6 +2043,10 @@
       localPath: "france-regions.geojson",
       cdnUrl: "https://cdn.jsdelivr.net/gh/gregoiredavid/france-geojson@master/regions-avec-outre-mer.geojson",
       nameKey: "nom",
+      // Compute the camera view from metropolitan France only — including the
+      // overseas regions makes the bbox span from South America to the
+      // Indian Ocean and the auto-zoom falls back to whole-globe.
+      viewFilter: (f) => !FRENCH_OVERSEAS.has(f.properties.displayName),
       searchType: "french-region",
     });
     registerSubdivision("italian-regions", {
@@ -2030,8 +2062,16 @@
       flag: "🇪🇸",
       capitals: SPANISH_CAPITALS,
       localPath: "spain-comunidades.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/ESP/ADM1/geoBoundaries-ESP-ADM1_simplified.geojson",
+      // The /raw/<sha>/ URL on github.com 302-redirects to
+      // media.githubusercontent.com with empty CORS on the hop, which fails
+      // when the page is opened via file:// and falls back to the CDN.
+      // Hit the LFS-backed media host directly for clean CORS.
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/ESP/ADM1/geoBoundaries-ESP-ADM1_simplified.geojson",
       nameKey: "shapeName",
+      // Source ships with inverted polygon winding — d3 treats the rings as
+      // covering everything outside Spain. Flip them so geoBounds and
+      // geoContains behave correctly.
+      reverseWinding: true,
       searchType: "spanish-community",
     });
     registerSubdivision("uk-countries", {
@@ -2039,7 +2079,7 @@
       flag: "🇬🇧",
       capitals: UK_COUNTRY_CAPITALS,
       localPath: "uk-countries.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/GBR/ADM1/geoBoundaries-GBR-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/GBR/ADM1/geoBoundaries-GBR-ADM1_simplified.geojson",
       nameKey: "shapeName",
       searchType: "uk-country",
     });
@@ -2084,7 +2124,7 @@
       flag: "🇰🇷",
       capitals: SOUTH_KOREAN_CAPITALS,
       localPath: "south-korea.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/KOR/ADM1/geoBoundaries-KOR-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/KOR/ADM1/geoBoundaries-KOR-ADM1_simplified.geojson",
       nameKey: "shapeName",
       searchType: "south-korean-region",
     });
@@ -2093,7 +2133,7 @@
       flag: "🇮🇩",
       capitals: INDONESIAN_CAPITALS,
       localPath: "indonesia.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/IDN/ADM1/geoBoundaries-IDN-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/IDN/ADM1/geoBoundaries-IDN-ADM1_simplified.geojson",
       nameKey: "shapeName",
       searchType: "indonesian-province",
     });
@@ -2102,7 +2142,7 @@
       flag: "🇵🇭",
       capitals: PHILIPPINE_CAPITALS,
       localPath: "philippines.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/PHL/ADM1/geoBoundaries-PHL-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/PHL/ADM1/geoBoundaries-PHL-ADM1_simplified.geojson",
       nameKey: "shapeName",
       nameOverrides: { "Mimaropa": "MIMAROPA", "Soccsksargen": "SOCCSKSARGEN" },
       searchType: "philippine-region",
@@ -2129,7 +2169,7 @@
       flag: "🇨🇴",
       capitals: COLOMBIAN_CAPITALS,
       localPath: "colombia.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/COL/ADM1/geoBoundaries-COL-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/COL/ADM1/geoBoundaries-COL-ADM1_simplified.geojson",
       nameKey: "shapeName",
       searchType: "colombian-department",
     });
@@ -2138,7 +2178,7 @@
       flag: "🇵🇪",
       capitals: PERUVIAN_CAPITALS,
       localPath: "peru.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/PER/ADM1/geoBoundaries-PER-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/PER/ADM1/geoBoundaries-PER-ADM1_simplified.geojson",
       nameKey: "shapeName",
       searchType: "peruvian-region",
     });
@@ -2147,7 +2187,7 @@
       flag: "🇿🇦",
       capitals: SOUTH_AFRICAN_CAPITALS,
       localPath: "south-africa.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/ZAF/ADM1/geoBoundaries-ZAF-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/ZAF/ADM1/geoBoundaries-ZAF-ADM1_simplified.geojson",
       nameKey: "shapeName",
       nameOverrides: { "Nothern Cape": "Northern Cape" },
       searchType: "south-african-province",
@@ -2157,7 +2197,7 @@
       flag: "🇳🇬",
       capitals: NIGERIAN_CAPITALS,
       localPath: "nigeria.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/NGA/ADM1/geoBoundaries-NGA-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/NGA/ADM1/geoBoundaries-NGA-ADM1_simplified.geojson",
       nameKey: "shapeName",
       searchType: "nigerian-state",
     });
@@ -2166,7 +2206,7 @@
       flag: "🇪🇹",
       capitals: ETHIOPIAN_CAPITALS,
       localPath: "ethiopia.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/ETH/ADM1/geoBoundaries-ETH-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/ETH/ADM1/geoBoundaries-ETH-ADM1_simplified.geojson",
       nameKey: "shapeName",
       nameOverrides: {
         "Beneshangul Gumu": "Benishangul-Gumuz",
@@ -2179,7 +2219,7 @@
       flag: "🇰🇪",
       capitals: KENYAN_CAPITALS,
       localPath: "kenya.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/KEN/ADM1/geoBoundaries-KEN-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/KEN/ADM1/geoBoundaries-KEN-ADM1_simplified.geojson",
       nameKey: "shapeName",
       nameOverrides: { "Tharaka": "Tharaka-Nithi" },
       searchType: "kenyan-county",
@@ -2189,7 +2229,7 @@
       flag: "🇹🇿",
       capitals: TANZANIAN_CAPITALS,
       localPath: "tanzania.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/TZA/ADM1/geoBoundaries-TZA-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/TZA/ADM1/geoBoundaries-TZA-ADM1_simplified.geojson",
       nameKey: "shapeName",
       searchType: "tanzanian-region",
     });
@@ -2198,7 +2238,7 @@
       flag: "🇷🇺",
       capitals: RUSSIAN_CAPITALS,
       localPath: "russia.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/RUS/ADM1/geoBoundaries-RUS-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/RUS/ADM1/geoBoundaries-RUS-ADM1_simplified.geojson",
       nameKey: "shapeName",
       nameOverrides: { "Leningrad oblast": "Leningrad Oblast" },
       searchType: "russian-federal-subject",
@@ -2208,7 +2248,7 @@
       flag: "🇵🇱",
       capitals: POLISH_CAPITALS,
       localPath: "poland.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/POL/ADM1/geoBoundaries-POL-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/POL/ADM1/geoBoundaries-POL-ADM1_simplified.geojson",
       nameKey: "shapeName",
       searchType: "polish-voivodeship",
     });
@@ -2217,7 +2257,7 @@
       flag: "🇳🇱",
       capitals: DUTCH_CAPITALS,
       localPath: "netherlands.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/NLD/ADM1/geoBoundaries-NLD-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/NLD/ADM1/geoBoundaries-NLD-ADM1_simplified.geojson",
       nameKey: "shapeName",
       searchType: "dutch-province",
     });
@@ -2226,7 +2266,7 @@
       flag: "🇧🇪",
       capitals: BELGIAN_CAPITALS,
       localPath: "belgium.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/BEL/ADM2/geoBoundaries-BEL-ADM2_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/BEL/ADM2/geoBoundaries-BEL-ADM2_simplified.geojson",
       nameKey: "shapeName",
       nameOverrides: {
         "Antwerpen": "Antwerp",
@@ -2246,7 +2286,7 @@
       flag: "🇸🇪",
       capitals: SWEDISH_CAPITALS,
       localPath: "sweden.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/SWE/ADM1/geoBoundaries-SWE-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/SWE/ADM1/geoBoundaries-SWE-ADM1_simplified.geojson",
       nameKey: "shapeName",
       searchType: "swedish-county",
     });
@@ -2255,7 +2295,7 @@
       flag: "🇳🇴",
       capitals: NORWEGIAN_CAPITALS,
       localPath: "norway.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/NOR/ADM1/geoBoundaries-NOR-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/NOR/ADM1/geoBoundaries-NOR-ADM1_simplified.geojson",
       nameKey: "shapeName",
       searchType: "norwegian-county",
     });
@@ -2264,7 +2304,7 @@
       flag: "🇫🇮",
       capitals: FINNISH_CAPITALS,
       localPath: "finland.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/FIN/ADM1/geoBoundaries-FIN-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/FIN/ADM1/geoBoundaries-FIN-ADM1_simplified.geojson",
       nameKey: "shapeName",
       searchType: "finnish-region",
     });
@@ -2273,7 +2313,7 @@
       flag: "🇬🇷",
       capitals: GREEK_CAPITALS,
       localPath: "greece.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/GRC/ADM2/geoBoundaries-GRC-ADM2_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/GRC/ADM2/geoBoundaries-GRC-ADM2_simplified.geojson",
       nameKey: "shapeName",
       nameOverrides: {
         "Agion Oros": "Mount Athos",
@@ -2298,7 +2338,7 @@
       flag: "🇹🇷",
       capitals: TURKISH_CAPITALS,
       localPath: "turkey.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/TUR/ADM1/geoBoundaries-TUR-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/TUR/ADM1/geoBoundaries-TUR-ADM1_simplified.geojson",
       nameKey: "shapeName",
       searchType: "turkish-province",
     });
@@ -2307,7 +2347,7 @@
       flag: "🇺🇦",
       capitals: UKRAINIAN_CAPITALS,
       localPath: "ukraine.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/UKR/ADM1/geoBoundaries-UKR-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/UKR/ADM1/geoBoundaries-UKR-ADM1_simplified.geojson",
       nameKey: "shapeName",
       searchType: "ukrainian-oblast",
     });
@@ -2316,7 +2356,7 @@
       flag: "🇻🇳",
       capitals: VIETNAMESE_CAPITALS,
       localPath: "vietnam.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/VNM/ADM1/geoBoundaries-VNM-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/VNM/ADM1/geoBoundaries-VNM-ADM1_simplified.geojson",
       nameKey: "shapeName",
       searchType: "vietnamese-province",
     });
@@ -2325,7 +2365,7 @@
       flag: "🇹🇭",
       capitals: THAI_CAPITALS,
       localPath: "thailand.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/THA/ADM1/geoBoundaries-THA-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/THA/ADM1/geoBoundaries-THA-ADM1_simplified.geojson",
       nameKey: "shapeName",
       nameClean: (n) => n.replace(/ Province$/, ""),
       searchType: "thai-province",
@@ -2335,7 +2375,7 @@
       flag: "🇲🇾",
       capitals: MALAYSIAN_CAPITALS,
       localPath: "malaysia.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/MYS/ADM1/geoBoundaries-MYS-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/MYS/ADM1/geoBoundaries-MYS-ADM1_simplified.geojson",
       nameKey: "shapeName",
       searchType: "malaysian-state",
     });
@@ -2344,7 +2384,7 @@
       flag: "🇵🇰",
       capitals: PAKISTANI_CAPITALS,
       localPath: "pakistan.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/PAK/ADM1/geoBoundaries-PAK-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/PAK/ADM1/geoBoundaries-PAK-ADM1_simplified.geojson",
       nameKey: "shapeName",
       searchType: "pakistani-province",
     });
@@ -2353,7 +2393,7 @@
       flag: "🇳🇵",
       capitals: NEPALI_CAPITALS,
       localPath: "nepal.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/NPL/ADM1/geoBoundaries-NPL-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/NPL/ADM1/geoBoundaries-NPL-ADM1_simplified.geojson",
       nameKey: "shapeName",
       nameOverrides: {
         "Province 1": "Koshi",
@@ -2366,7 +2406,7 @@
       flag: "🇳🇿",
       capitals: NEW_ZEALAND_CAPITALS,
       localPath: "new-zealand.geojson",
-      cdnUrl: "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/NZL/ADM1/geoBoundaries-NZL-ADM1_simplified.geojson",
+      cdnUrl: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/NZL/ADM1/geoBoundaries-NZL-ADM1_simplified.geojson",
       nameKey: "shapeName",
       searchType: "new-zealand-region",
     });
@@ -2705,7 +2745,7 @@
           console.error("Dataset load failed:", err);
           promptLabel.textContent = "Error";
           promptName.textContent = `Failed to load ${entry.label}`;
-          promptMeta.textContent = "Check your connection and try again.";
+          promptMeta.textContent = (err && err.message) || "Check your connection and try again.";
           datasetSelect.value = prev;
           return;
         }

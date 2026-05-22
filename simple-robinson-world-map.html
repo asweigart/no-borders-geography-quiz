@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simple Robinson World Map</title>
+<style>
+  :root {
+    --bg: #050912;
+    --ocean: #16335a;
+    --ocean-stroke: rgba(120,170,230,0.25);
+    --land: #3d6b48;
+    --rivers: rgba(120,170,230,0.55);
+    --border: rgba(0,0,0,0.18);
+    --label: #f4ecd6;
+    --label-shadow: rgba(0,0,0,0.85);
+    --hl-stroke: #7ec8ff;
+    --hl-fill: rgba(120,200,255,0.22);
+    --measure: #ffd54a;
+    --measure-fill: rgba(255,213,74,0.18);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: var(--bg); color: #e8eef8;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+  #map { display: block; width: 100vw; height: 100vh; cursor: grab; touch-action: none; }
+  #map.dragging { cursor: grabbing; }
+  body.info-mode #map, body.measure-mode #map { cursor: crosshair; }
+
+  #map rect.ocean { fill: var(--ocean); }
+  #map path.layer-graticule { fill: none; stroke: rgba(255,255,255,0.07); stroke-width: 0.5; }
+  #map path.layer-land { fill: var(--land); stroke: var(--border); stroke-width: 0.4; stroke-linejoin: round; }
+  #map path.layer-lakes { fill: var(--ocean); stroke: var(--ocean-stroke); stroke-width: 0.3; }
+  #map path.layer-rivers { fill: none; stroke: var(--rivers); stroke-width: 0.5; stroke-linejoin: round; stroke-linecap: round; }
+  #map path.subdivision { fill: none; stroke: rgba(255,255,255,0.18); stroke-width: 0.3; }
+  #map path.info-hit-country { fill: none; stroke: var(--hl-stroke); stroke-width: 1.4; stroke-dasharray: 5 3; vector-effect: non-scaling-stroke; pointer-events: none; }
+  #map path.info-hit-subdivision { fill: var(--hl-fill); stroke: var(--hl-stroke); stroke-width: 1.4; vector-effect: non-scaling-stroke; stroke-linejoin: round; pointer-events: none; }
+  #map .country-label {
+    fill: var(--label); font-weight: 500;
+    text-anchor: middle; dominant-baseline: middle;
+    paint-order: stroke;
+    stroke: var(--label-shadow); stroke-linejoin: round;
+    pointer-events: none;
+  }
+  #map .measure-line { fill: none; stroke: var(--measure); stroke-width: 1.5; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; pointer-events: none; }
+  #map .measure-point { fill: var(--measure); stroke: rgba(0,0,0,0.6); stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: none; }
+  #map .measure-label {
+    fill: var(--measure); font-weight: 600;
+    paint-order: stroke; stroke: rgba(0,0,0,0.85); stroke-linejoin: round;
+    pointer-events: none;
+  }
+  #reticle { display: none; pointer-events: none; }
+  #reticle line { stroke: rgba(255,255,255,0.8); stroke-width: 1.5; }
+  body.touch.info-mode #reticle, body.touch.measure-mode #reticle { display: block; }
+
+  #hud {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    z-index: 10; pointer-events: none;
+    display: flex; flex-direction: column; gap: 8px; align-items: center;
+  }
+  .card {
+    background: rgba(8,14,28,0.88);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 12px; padding: 12px 22px;
+    text-align: center; min-width: 240px; max-width: 90vw;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+    pointer-events: auto;
+  }
+  #info-card { border-color: rgba(120,180,255,0.5); }
+  #info-card.hidden { display: none; }
+  #measure-card { border-color: rgba(255,213,74,0.5); display: none; }
+  body.measure-mode #measure-card { display: block; }
+  .card .label { font-size: 11px; opacity: 0.55; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
+  .card .name { font-size: 18px; font-weight: 600; line-height: 1.25; }
+  .card .meta { font-size: 13px; opacity: 0.75; margin-top: 4px; }
+  .card .sub { font-size: 12px; opacity: 0.55; margin-top: 6px; }
+  .card .actions { margin-top: 8px; display: flex; gap: 6px; justify-content: center; }
+  .card button {
+    background: rgba(255,255,255,0.08); color: #e8eef8;
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 5px;
+    padding: 4px 10px; font-size: 12px; cursor: pointer; font-family: inherit;
+  }
+  .card button:hover { background: rgba(255,255,255,0.15); }
+
+  #settings-btn {
+    position: fixed; top: 16px; right: 16px; z-index: 20;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(8,14,28,0.88); color: #e8eef8;
+    border: 1px solid rgba(255,255,255,0.09);
+    cursor: pointer; font-size: 18px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  #settings-btn:hover { background: rgba(40,60,100,0.9); }
+
+  #settings-panel {
+    position: fixed; top: 0; right: 0; height: 100vh; width: 340px; max-width: 90vw;
+    background: rgba(5,10,22,0.96);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-left: 1px solid rgba(255,255,255,0.08);
+    padding: 20px 22px;
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+    z-index: 30;
+  }
+  #settings-panel.open { transform: translateX(0); }
+  .settings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+  .settings-header h2 { margin: 0; font-size: 18px; }
+  #close-settings { background: none; border: none; color: #e8eef8; font-size: 26px; cursor: pointer; line-height: 1; }
+
+  details.group { margin-bottom: 18px; }
+  details.group > summary {
+    list-style: none; cursor: pointer; user-select: none;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; opacity: 0.55; text-transform: uppercase; letter-spacing: 1.5px;
+    margin-bottom: 8px; padding: 2px 0;
+  }
+  details.group > summary::-webkit-details-marker { display: none; }
+  details.group > summary::before { content: "▸"; font-size: 9px; width: 10px; }
+  details.group[open] > summary::before { content: "▾"; }
+  details.group:not([open]) > summary { margin-bottom: 0; }
+
+  .mode-tabs { display: flex; gap: 6px; }
+  .mode-tab {
+    flex: 1; padding: 9px 10px; font-size: 14px;
+    background: rgba(255,255,255,0.04); color: #e8eef8;
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 7px;
+    cursor: pointer; font-family: inherit;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .mode-tab:hover { background: rgba(255,255,255,0.08); }
+  .mode-tab.active { background: rgba(80,130,230,0.25); border-color: rgba(80,130,230,0.7); }
+  .mode-tab.active[data-mode="measure"] { background: rgba(255,213,74,0.18); border-color: rgba(255,213,74,0.6); }
+
+  .control-toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px 0; font-size: 14px; }
+  input[type="checkbox"] { accent-color: #5a8be6; width: 15px; height: 15px; cursor: pointer; }
+
+  .scheme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 14px; }
+  .scheme-btn {
+    display: flex; flex-direction: column; gap: 4px; padding: 6px;
+    background: rgba(255,255,255,0.04); color: #e8eef8;
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 6px;
+    cursor: pointer; font-family: inherit; font-size: 12px;
+  }
+  .scheme-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); }
+  .scheme-preview { display: flex; height: 14px; border-radius: 3px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); }
+  .scheme-preview span { flex: 1; }
+
+  .color-row { display: flex; align-items: center; gap: 12px; padding: 4px 0; font-size: 13px; }
+  .color-row > span { flex: 1; }
+  .color-input { width: 60px; height: 28px; padding: 2px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 5px; cursor: pointer; flex: 0 0 auto;
+  }
+
+  #help-hint, #credit {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    z-index: 10; pointer-events: none; text-align: center;
+  }
+  #help-hint { bottom: 28px; font-size: 11px; opacity: 0.45; letter-spacing: 0.5px; }
+  #credit { bottom: 8px; font-size: 10px; opacity: 0.55; }
+  #credit a { color: inherit; text-decoration: underline; pointer-events: auto; }
+  #credit a:hover { color: #8ab4f8; opacity: 1; }
+
+  #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: var(--bg); z-index: 100; font-size: 14px; opacity: 0.7; }
+</style>
+</head>
+<body>
+  <div id="loading">Loading map data…</div>
+  <svg id="map"></svg>
+
+  <div id="hud">
+    <div id="info-card" class="card hidden">
+      <div class="label">Info</div>
+      <div class="name">—</div>
+      <div class="meta"></div>
+      <div class="sub"></div>
+    </div>
+    <div id="measure-card" class="card">
+      <div class="label">Distance</div>
+      <div class="name">Click to add points</div>
+      <div class="meta"></div>
+      <div class="actions">
+        <button id="measure-undo" type="button">Undo</button>
+        <button id="measure-clear" type="button">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <button id="settings-btn" aria-label="Settings" title="Settings">⚙</button>
+
+  <aside id="settings-panel">
+    <div class="settings-header">
+      <h2>Settings</h2>
+      <button id="close-settings" aria-label="Close">×</button>
+    </div>
+
+    <details class="group" open>
+      <summary>Mode</summary>
+      <div class="mode-tabs">
+        <button class="mode-tab active" data-mode="navigate">Navigate</button>
+        <button class="mode-tab" data-mode="info">Info</button>
+        <button class="mode-tab" data-mode="measure">Measure</button>
+      </div>
+    </details>
+
+    <details class="group" open>
+      <summary>Options</summary>
+      <label class="control-toggle"><input type="checkbox" id="labels-toggle" checked> <span>Country labels</span></label>
+      <label class="control-toggle"><input type="checkbox" id="lakes-toggle" checked> <span>Lakes</span></label>
+      <label class="control-toggle"><input type="checkbox" id="rivers-toggle" checked> <span>Rivers</span></label>
+      <label class="control-toggle"><input type="checkbox" id="graticule-toggle" checked> <span>Graticule</span></label>
+    </details>
+
+    <details class="group">
+      <summary>Colors</summary>
+      <div class="scheme-grid">
+        <button class="scheme-btn" data-scheme="classic">
+          <span class="scheme-preview"><span style="background:#050912"></span><span style="background:#16335a"></span><span style="background:#3d6b48"></span><span style="background:#ffd54a"></span></span>Classic
+        </button>
+        <button class="scheme-btn" data-scheme="daylight">
+          <span class="scheme-preview"><span style="background:#e8e4d8"></span><span style="background:#b9d6e8"></span><span style="background:#c9b88c"></span><span style="background:#d4861c"></span></span>Daylight
+        </button>
+        <button class="scheme-btn" data-scheme="parchment">
+          <span class="scheme-preview"><span style="background:#2a1f15"></span><span style="background:#3a4a5c"></span><span style="background:#d4a373"></span><span style="background:#b03020"></span></span>Parchment
+        </button>
+        <button class="scheme-btn" data-scheme="neon">
+          <span class="scheme-preview"><span style="background:#0a0014"></span><span style="background:#0d1a3a"></span><span style="background:#143a3a"></span><span style="background:#ff2dc8"></span></span>Neon
+        </button>
+        <button class="scheme-btn" data-scheme="mono">
+          <span class="scheme-preview"><span style="background:#0d0d0d"></span><span style="background:#1f1f1f"></span><span style="background:#4a4a4a"></span><span style="background:#ffffff"></span></span>Mono
+        </button>
+        <button class="scheme-btn" data-scheme="sunset">
+          <span class="scheme-preview"><span style="background:#1f0d18"></span><span style="background:#3a2433"></span><span style="background:#8b4a3a"></span><span style="background:#ffe45c"></span></span>Sunset
+        </button>
+      </div>
+      <label class="color-row"><span>Background</span><input type="color" id="bg-color" value="#050912" class="color-input"></label>
+      <label class="color-row"><span>Land</span><input type="color" id="land-color" value="#3d6b48" class="color-input"></label>
+      <label class="color-row"><span>Ocean</span><input type="color" id="ocean-color" value="#16335a" class="color-input"></label>
+      <label class="color-row"><span>Rivers</span><input type="color" id="river-color" value="#78aae6" class="color-input"></label>
+      <label class="color-row"><span>Highlight</span><input type="color" id="highlight-color" value="#7ec8ff" class="color-input"></label>
+      <label class="color-row"><span>Measure</span><input type="color" id="measure-color" value="#ffd54a" class="color-input"></label>
+    </details>
+  </aside>
+
+  <div id="help-hint">Drag to pan · Scroll to zoom · WASD / arrows to pan · + / − to zoom · Q/E or PgUp/PgDn to rotate</div>
+  <div id="credit">
+    Generated by <a href="https://inventwithpython.com" target="_blank" rel="noopener">Al Sweigart</a>
+    · This app works offline. Save it as a .html file.
+  </div>
+
+  <script src="d3.v7.min.js"></script>
+  <script>window.d3 || document.write('<script src="https://cdn.jsdelivr.net/npm/d3@7"><\/script>');</script>
+  <script src="topojson-client.v3.min.js"></script>
+  <script>window.topojson || document.write('<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"><\/script>');</script>
+  <script src="d3-geo-projection.v4.min.js"></script>
+  <script>(window.d3 && window.d3.geoRobinson) || document.write('<script src="https://cdn.jsdelivr.net/npm/d3-geo-projection@4"><\/script>');</script>
+  <script>
+  (async function () {
+    "use strict";
+
+    const EARTH_KM = 6371;
+    const IS_TOUCH = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+    if (IS_TOUCH) document.body.classList.add("touch");
+
+    const KEY_PAN_PX_PER_SEC = 600;
+    const KEY_ZOOM_PER_SEC = 1.9;
+    const KEY_ROTATE_DEG_PER_SEC = 60;
+    const LABEL_SCREEN_PX = 12;
+    const MEASURE_LABEL_PX = 11;
+
+    // Subdivision data sources (lazy-loaded for Info mode).
+    // Keyed by the country's `name.common` from world-countries.
+    const SUBDIVISIONS = {
+      "United States": { path: "states-10m.json", topojson: true, object: "states", nameKey: "name", capitals: stateCapitals() },
+      "Canada":        { path: "canada.geojson", nameKey: "name", capitals: { "Alberta":"Edmonton","British Columbia":"Victoria","Manitoba":"Winnipeg","New Brunswick":"Fredericton","Newfoundland and Labrador":"St. John's","Northwest Territories":"Yellowknife","Nova Scotia":"Halifax","Nunavut":"Iqaluit","Ontario":"Toronto","Prince Edward Island":"Charlottetown","Quebec":"Quebec City","Saskatchewan":"Regina","Yukon Territory":"Whitehorse" } },
+      "Mexico":        { path: "mexico.geojson", nameKey: "state_name", capitals: mexicanCapitals() },
+      "Brazil":        { path: "brazil-states.geojson", nameKey: "name", capitals: brazilianCapitals() },
+      "Australia":     { path: "australia.geojson", nameKey: "name", capitals: { "New South Wales":"Sydney","Victoria":"Melbourne","Queensland":"Brisbane","Western Australia":"Perth","South Australia":"Adelaide","Tasmania":"Hobart","Australian Capital Territory":"Canberra","Northern Territory":"Darwin" } },
+      "India":         { path: "india.geojson", nameKey: "name", capitals: indianCapitals() },
+      "Germany":       { path: "germany.geojson", nameKey: "name", capitals: { "Baden-Württemberg":"Stuttgart","Bayern":"München","Berlin":"Berlin","Brandenburg":"Potsdam","Bremen":"Bremen","Hamburg":"Hamburg","Hessen":"Wiesbaden","Mecklenburg-Vorpommern":"Schwerin","Niedersachsen":"Hannover","Nordrhein-Westfalen":"Düsseldorf","Rheinland-Pfalz":"Mainz","Saarland":"Saarbrücken","Sachsen":"Dresden","Sachsen-Anhalt":"Magdeburg","Schleswig-Holstein":"Kiel","Thüringen":"Erfurt" } },
+      "Austria":       { path: "austria.geojson", nameKey: "name", capitals: { "Burgenland":"Eisenstadt","Kärnten":"Klagenfurt","Niederösterreich":"St. Pölten","Oberösterreich":"Linz","Salzburg":"Salzburg","Steiermark":"Graz","Tirol":"Innsbruck","Vorarlberg":"Bregenz","Wien":"Wien" } },
+      "Switzerland":   { path: "switzerland.geojson", nameKey: "name" },
+      "France":        { path: "france-regions.geojson", nameKey: "nom" },
+      "Italy":         { path: "italy-regions.geojson", nameKey: "name" },
+      "Spain":         { path: "spain-comunidades.geojson", nameKey: "shapeName", reverseWinding: true },
+      "United Kingdom":{ path: "uk-countries.geojson", nameKey: "shapeName", capitals: { "England":"London","Scotland":"Edinburgh","Wales":"Cardiff","Northern Ireland":"Belfast" } },
+      "Ireland":       { path: "ireland-counties.geojson", nameKey: "name" },
+      "Japan":         { path: "japan.geojson", nameKey: "name_english" },
+      "China":         { path: "china.geojson", nameKey: "name" },
+      "South Korea":   { path: "south-korea.geojson", nameKey: "shapeName" },
+      "Indonesia":     { path: "indonesia.geojson", nameKey: "shapeName" },
+      "Philippines":   { path: "philippines.geojson", nameKey: "shapeName" },
+      "Argentina":     { path: "argentina.geojson", nameKey: "name" },
+      "Chile":         { path: "chile.geojson", nameKey: "Region" },
+      "Colombia":      { path: "colombia.geojson", nameKey: "shapeName" },
+      "Peru":          { path: "peru.geojson", nameKey: "shapeName" },
+      "South Africa":  { path: "south-africa.geojson", nameKey: "shapeName" },
+      "Nigeria":       { path: "nigeria.geojson", nameKey: "shapeName" },
+      "Ethiopia":      { path: "ethiopia.geojson", nameKey: "shapeName" },
+      "Kenya":         { path: "kenya.geojson", nameKey: "shapeName" },
+      "Tanzania":      { path: "tanzania.geojson", nameKey: "shapeName" },
+      "Russia":        { path: "russia.geojson", nameKey: "shapeName" },
+      "Poland":        { path: "poland.geojson", nameKey: "shapeName" },
+      "Netherlands":   { path: "netherlands.geojson", nameKey: "shapeName" },
+      "Belgium":       { path: "belgium.geojson", nameKey: "shapeName" },
+      "Sweden":        { path: "sweden.geojson", nameKey: "shapeName" },
+      "Norway":        { path: "norway.geojson", nameKey: "shapeName" },
+      "Finland":       { path: "finland.geojson", nameKey: "shapeName" },
+      "Greece":        { path: "greece.geojson", nameKey: "shapeName" },
+      "Turkey":        { path: "turkey.geojson", nameKey: "shapeName" },
+      "Ukraine":       { path: "ukraine.geojson", nameKey: "shapeName" },
+      "Vietnam":       { path: "vietnam.geojson", nameKey: "shapeName" },
+      "Thailand":      { path: "thailand.geojson", nameKey: "shapeName", stripSuffix: " Province" },
+      "Malaysia":      { path: "malaysia.geojson", nameKey: "shapeName" },
+      "Pakistan":      { path: "pakistan.geojson", nameKey: "shapeName" },
+      "Nepal":         { path: "nepal.geojson", nameKey: "shapeName" },
+      "New Zealand":   { path: "new-zealand.geojson", nameKey: "shapeName" },
+    };
+
+    function stateCapitals() {
+      return {"Alabama":"Montgomery","Alaska":"Juneau","Arizona":"Phoenix","Arkansas":"Little Rock","California":"Sacramento","Colorado":"Denver","Connecticut":"Hartford","Delaware":"Dover","Florida":"Tallahassee","Georgia":"Atlanta","Hawaii":"Honolulu","Idaho":"Boise","Illinois":"Springfield","Indiana":"Indianapolis","Iowa":"Des Moines","Kansas":"Topeka","Kentucky":"Frankfort","Louisiana":"Baton Rouge","Maine":"Augusta","Maryland":"Annapolis","Massachusetts":"Boston","Michigan":"Lansing","Minnesota":"Saint Paul","Mississippi":"Jackson","Missouri":"Jefferson City","Montana":"Helena","Nebraska":"Lincoln","Nevada":"Carson City","New Hampshire":"Concord","New Jersey":"Trenton","New Mexico":"Santa Fe","New York":"Albany","North Carolina":"Raleigh","North Dakota":"Bismarck","Ohio":"Columbus","Oklahoma":"Oklahoma City","Oregon":"Salem","Pennsylvania":"Harrisburg","Rhode Island":"Providence","South Carolina":"Columbia","South Dakota":"Pierre","Tennessee":"Nashville","Texas":"Austin","Utah":"Salt Lake City","Vermont":"Montpelier","Virginia":"Richmond","Washington":"Olympia","West Virginia":"Charleston","Wisconsin":"Madison","Wyoming":"Cheyenne"};
+    }
+    function mexicanCapitals() {
+      return {"Aguascalientes":"Aguascalientes","Baja California":"Mexicali","Baja California Sur":"La Paz","Campeche":"Campeche","Chiapas":"Tuxtla Gutiérrez","Chihuahua":"Chihuahua","Coahuila de Zaragoza":"Saltillo","Colima":"Colima","Distrito Federal":"Mexico City","Durango":"Durango","Guanajuato":"Guanajuato","Guerrero":"Chilpancingo","Hidalgo":"Pachuca","Jalisco":"Guadalajara","México":"Toluca","Michoacán de Ocampo":"Morelia","Morelos":"Cuernavaca","Nayarit":"Tepic","Nuevo León":"Monterrey","Oaxaca":"Oaxaca","Puebla":"Puebla","Querétaro":"Querétaro","Quintana Roo":"Chetumal","San Luis Potosí":"San Luis Potosí","Sinaloa":"Culiacán","Sonora":"Hermosillo","Tabasco":"Villahermosa","Tamaulipas":"Ciudad Victoria","Tlaxcala":"Tlaxcala","Veracruz de Ignacio de la Llave":"Xalapa","Yucatán":"Mérida","Zacatecas":"Zacatecas"};
+    }
+    function brazilianCapitals() {
+      return {"Acre":"Rio Branco","Alagoas":"Maceió","Amapá":"Macapá","Amazonas":"Manaus","Bahia":"Salvador","Ceará":"Fortaleza","Distrito Federal":"Brasília","Espírito Santo":"Vitória","Goiás":"Goiânia","Maranhão":"São Luís","Mato Grosso":"Cuiabá","Mato Grosso do Sul":"Campo Grande","Minas Gerais":"Belo Horizonte","Pará":"Belém","Paraíba":"João Pessoa","Paraná":"Curitiba","Pernambuco":"Recife","Piauí":"Teresina","Rio de Janeiro":"Rio de Janeiro","Rio Grande do Norte":"Natal","Rio Grande do Sul":"Porto Alegre","Rondônia":"Porto Velho","Roraima":"Boa Vista","Santa Catarina":"Florianópolis","São Paulo":"São Paulo","Sergipe":"Aracaju","Tocantins":"Palmas"};
+    }
+    function indianCapitals() {
+      return {"Andaman and Nicobar Islands":"Port Blair","Andhra Pradesh":"Amaravati","Assam":"Dispur","Bihar":"Patna","Chandigarh":"Chandigarh","Chhattisgarh":"Raipur","Dadra and Nagar Haveli":"Silvassa","Daman and Diu":"Daman","Delhi":"New Delhi","Goa":"Panaji","Gujarat":"Gandhinagar","Haryana":"Chandigarh","Himachal Pradesh":"Shimla","Jammu and Kashmir":"Srinagar","Jharkhand":"Ranchi","Karnataka":"Bengaluru","Kerala":"Thiruvananthapuram","Lakshadweep":"Kavaratti","Madhya Pradesh":"Bhopal","Maharashtra":"Mumbai","Manipur":"Imphal","Meghalaya":"Shillong","Mizoram":"Aizawl","Nagaland":"Kohima","Odisha":"Bhubaneswar","Pondicherry":"Puducherry","Punjab":"Chandigarh","Rajasthan":"Jaipur","Sikkim":"Gangtok","Tamil Nadu":"Chennai","Telangana":"Hyderabad","Tripura":"Agartala","Uttar Pradesh":"Lucknow","Uttarakhand":"Dehradun","West Bengal":"Kolkata"};
+    }
+
+    // ---- Local-first loader ----
+    async function loadJson(localPath, cdnUrl) {
+      try { return await d3.json(localPath); }
+      catch (e) {
+        console.warn("local " + localPath + " unavailable, falling back to CDN");
+        return await d3.json(cdnUrl);
+      }
+    }
+
+    // ---- Load base data ----
+    const [worldTopo, countriesMeta, lakesGeo, riversGeo] = await Promise.all([
+      loadJson("countries-50m.json", "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json"),
+      loadJson("world-countries.json", "https://cdn.jsdelivr.net/npm/world-countries@5.1.0/dist/countries.json"),
+      loadJson("ne_50m_lakes.json", "https://cdn.jsdelivr.net/gh/martynafford/natural-earth-geojson@master/50m/physical/ne_50m_lakes.json"),
+      loadJson("ne_50m_rivers_lake_centerlines.json", "https://cdn.jsdelivr.net/gh/martynafford/natural-earth-geojson@master/50m/physical/ne_50m_rivers_lake_centerlines.json"),
+    ]);
+
+    const metaById = new Map();
+    for (const m of countriesMeta) {
+      const n = parseInt(m.ccn3, 10);
+      if (Number.isFinite(n)) metaById.set(n, m);
+    }
+    function deriveContinent(meta) {
+      if (!meta) return "Other";
+      if (meta.region === "Americas") return meta.subregion === "South America" ? "South America" : "North America";
+      if (meta.region === "Antarctic") return "Antarctica";
+      return meta.region || "Other";
+    }
+
+    const countryFC = topojson.feature(worldTopo, worldTopo.objects.countries);
+    const countryFeatures = countryFC.features.map(f => {
+      const idNum = +f.id;
+      const meta = Number.isFinite(idNum) ? metaById.get(idNum) : null;
+      const displayName = (meta && meta.name && meta.name.common) || f.properties.name;
+      f.properties = {
+        ...f.properties,
+        displayName,
+        flag: (meta && meta.flag) || "🏳",
+        capital: (meta && meta.capital && meta.capital[0]) || "",
+        region: (meta && meta.region) || "",
+        subregion: (meta && meta.subregion) || "",
+        continent: deriveContinent(meta),
+      };
+      return f;
+    });
+
+    // ---- SVG + projection setup ----
+    const svgEl = document.getElementById("map");
+    const svg = d3.select(svgEl);
+    let width = window.innerWidth, height = window.innerHeight;
+    svg.attr("width", width).attr("height", height);
+
+    // Fit Robinson world to viewport.
+    // Robinson outputs approx 2.6666 (width) x 1.3523 (height) units at scale=1.
+    function initialFit() {
+      const margin = 20;
+      return Math.min((width - margin) / 5.333, (height - margin) / 2.704);
+    }
+    const baseScale = initialFit();
+    const projection = d3.geoRobinson()
+      .scale(baseScale)
+      .translate([width/2, height/2])
+      .center([0, 0])
+      .precision(0.5);
+    const path = d3.geoPath(projection);
+
+    // Layer order:
+    //   ocean rect (full viewport)
+    //   view <g> (zoomed/panned)
+    //     graticule
+    //     land
+    //     subdivisions (lazy)
+    //     lakes
+    //     rivers
+    //     reveal (info hit highlight)
+    //     country labels
+    //     measure lines + points + labels
+    //   reticle (fixed at viewport center on touch)
+    const oceanRect = svg.append("rect")
+      .attr("class", "ocean")
+      .attr("x", 0).attr("y", 0).attr("width", width).attr("height", height);
+
+    const viewG = svg.append("g").attr("id", "view");
+
+    const graticulePath = viewG.append("path")
+      .attr("class", "layer-graticule")
+      .datum(d3.geoGraticule10());
+    const landPath = viewG.append("path").attr("class", "layer-land");
+    const subdivisionsG = viewG.append("g").attr("id", "subdivisions");
+    const lakesPath = viewG.append("path").attr("class", "layer-lakes").datum(lakesGeo);
+    const riversPath = viewG.append("path").attr("class", "layer-rivers").datum(riversGeo);
+    const revealLayer = viewG.append("g").attr("id", "reveal");
+    const labelsG = viewG.append("g").attr("id", "labels");
+    const measureG = viewG.append("g").attr("id", "measure");
+
+    // Build merged land (single path = much cheaper than 177 separate)
+    const landGeo = topojson.merge(worldTopo, worldTopo.objects.countries.geometries);
+    landPath.datum(landGeo).attr("d", path);
+    graticulePath.attr("d", path);
+    lakesPath.attr("d", path);
+    riversPath.attr("d", path);
+
+    // Reticle (touch)
+    const reticleG = svg.append("g").attr("id", "reticle");
+    reticleG.append("line").attr("x1", -10).attr("x2", 10).attr("y1", 0).attr("y2", 0);
+    reticleG.append("line").attr("x1", 0).attr("x2", 0).attr("y1", -10).attr("y2", 10);
+    function positionReticle() {
+      reticleG.attr("transform", "translate(" + (width/2) + "," + (height/2) + ")");
+    }
+    positionReticle();
+
+    // ---- Country labels ----
+    // Compute centroid + screen area per country at base projection scale.
+    // Labels are translated by the current zoom transform so they stay aligned.
+    const countryLabelData = countryFeatures.map(f => {
+      const c = path.centroid(f);
+      const a = path.area(f); // px^2 at base scale
+      return { feature: f, name: f.properties.displayName, baseCx: c[0], baseCy: c[1], baseArea: a };
+    }).filter(d => Number.isFinite(d.baseCx) && Number.isFinite(d.baseCy));
+
+    labelsG.selectAll("text").data(countryLabelData).enter().append("text")
+      .attr("class", "country-label")
+      .text(d => d.name)
+      .attr("x", d => d.baseCx)
+      .attr("y", d => d.baseCy);
+
+    function updateLabels(k) {
+      if (!labelsVisible) {
+        labelsG.style("display", "none");
+        return;
+      }
+      labelsG.style("display", null);
+      // Effective area on screen scales by k^2. Show labels whose area would
+      // be at least ~600 px^2 on screen. Font is sized inversely to k so the
+      // rendered text stays a constant LABEL_SCREEN_PX on screen.
+      const minBaseArea = 600 / (k * k);
+      const fontSize = LABEL_SCREEN_PX / k;
+      const strokeW = 3 / k;
+      labelsG.selectAll("text")
+        .attr("font-size", fontSize)
+        .attr("stroke-width", strokeW)
+        .style("display", d => d.baseArea >= minBaseArea ? null : "none");
+    }
+
+    // ---- d3.zoom for pan + zoom ----
+    let labelsVisible = true;
+    const minScale = 1;
+    const maxScale = 80;
+    const zoom = d3.zoom()
+      .scaleExtent([minScale, maxScale])
+      .filter(event => {
+        // Allow wheel always; for drag, only the primary button
+        return !event.button || event.type === "wheel";
+      })
+      .on("start", () => svgEl.classList.add("dragging"))
+      .on("zoom", (event) => {
+        viewG.attr("transform", event.transform);
+        updateLabels(event.transform.k);
+        if (currentMode === "info") updateInfoFromLastPointer();
+        updateMeasureView();
+      })
+      .on("end", () => svgEl.classList.remove("dragging"));
+    svg.call(zoom).on("dblclick.zoom", null);
+    updateLabels(1);
+
+    // ---- Keyboard ----
+    const heldKeys = new Set();
+    const KEY_MAP = {
+      "w":"up","W":"up","ArrowUp":"up",
+      "s":"down","S":"down","ArrowDown":"down",
+      "a":"left","A":"left","ArrowLeft":"left",
+      "d":"right","D":"right","ArrowRight":"right",
+      "q":"rotL","Q":"rotL","PageUp":"rotL",
+      "e":"rotR","E":"rotR","PageDown":"rotR",
+      "+":"zin","=":"zin",
+      "-":"zout","_":"zout",
+    };
+    function isTypingTarget(t) {
+      return t && (t.tagName === "INPUT" || t.tagName === "SELECT" || t.tagName === "TEXTAREA" || t.isContentEditable);
+    }
+    let animActive = false, lastFrameT = 0;
+    let rotationLambda = 0;
+    window.addEventListener("keydown", (e) => {
+      if (isTypingTarget(e.target)) return;
+      const act = KEY_MAP[e.key];
+      if (!act) {
+        if (e.key === "Escape" && currentMode === "measure") clearMeasurement();
+        return;
+      }
+      e.preventDefault();
+      heldKeys.add(act);
+      if (!animActive) { animActive = true; lastFrameT = 0; requestAnimationFrame(keyFrame); }
+    });
+    window.addEventListener("keyup", (e) => {
+      const act = KEY_MAP[e.key];
+      if (act) heldKeys.delete(act);
+    });
+    window.addEventListener("blur", () => heldKeys.clear());
+    function keyFrame(t) {
+      if (heldKeys.size === 0) { animActive = false; lastFrameT = 0; return; }
+      if (!lastFrameT) lastFrameT = t;
+      const dt = Math.min(0.1, (t - lastFrameT) / 1000);
+      lastFrameT = t;
+      let dx = 0, dy = 0;
+      if (heldKeys.has("left"))  dx += KEY_PAN_PX_PER_SEC * dt;
+      if (heldKeys.has("right")) dx -= KEY_PAN_PX_PER_SEC * dt;
+      if (heldKeys.has("up"))    dy += KEY_PAN_PX_PER_SEC * dt;
+      if (heldKeys.has("down"))  dy -= KEY_PAN_PX_PER_SEC * dt;
+      if (dx || dy) zoom.translateBy(svg, dx, dy);
+      let zk = 1;
+      if (heldKeys.has("zin"))  zk *= Math.pow(KEY_ZOOM_PER_SEC, dt);
+      if (heldKeys.has("zout")) zk /= Math.pow(KEY_ZOOM_PER_SEC, dt);
+      if (zk !== 1) zoom.scaleBy(svg, zk);
+      let drot = 0;
+      if (heldKeys.has("rotL")) drot -= KEY_ROTATE_DEG_PER_SEC * dt;
+      if (heldKeys.has("rotR")) drot += KEY_ROTATE_DEG_PER_SEC * dt;
+      if (drot !== 0) {
+        rotationLambda = ((rotationLambda + drot + 540) % 360) - 180;
+        projection.rotate([rotationLambda, 0]);
+        repaintProjection();
+      }
+      requestAnimationFrame(keyFrame);
+    }
+
+    // Re-render every geographic path after projection.rotate changes.
+    // Country label centroids depend on projection too, so recompute them.
+    function repaintProjection() {
+      graticulePath.attr("d", path);
+      landPath.attr("d", path);
+      lakesPath.attr("d", path);
+      riversPath.attr("d", path);
+      subdivisionsG.selectAll("path").attr("d", path);
+      revealLayer.selectAll("path").attr("d", path);
+      for (const d of countryLabelData) {
+        const c = path.centroid(d.feature);
+        d.baseCx = c[0]; d.baseCy = c[1];
+        d.baseArea = path.area(d.feature);
+      }
+      labelsG.selectAll("text")
+        .attr("x", d => d.baseCx)
+        .attr("y", d => d.baseCy);
+      updateLabels(d3.zoomTransform(svgEl).k);
+      updateMeasureView();
+    }
+
+    // ---- Pointer tracking (for Info + Measure) ----
+    let lastPointer = null; // [px, py] in svg coords
+    svgEl.addEventListener("pointermove", (e) => {
+      if (e.pointerType === "touch") return;
+      const [x, y] = d3.pointer(e, svgEl);
+      lastPointer = [x, y];
+      if (currentMode === "info") updateInfo();
+    });
+    svgEl.addEventListener("pointerleave", (e) => {
+      if (e.pointerType === "touch") return;
+      lastPointer = null;
+      if (currentMode === "info") clearInfo();
+    });
+
+    function pointerLonLat() {
+      const pos = IS_TOUCH ? [width/2, height/2] : lastPointer;
+      if (!pos) return null;
+      const t = d3.zoomTransform(svgEl);
+      const [mx, my] = t.invert(pos);
+      return projection.invert([mx, my]);
+    }
+
+    // ---- Info mode ----
+    const infoCard = document.getElementById("info-card");
+    const infoName = infoCard.querySelector(".name");
+    const infoMeta = infoCard.querySelector(".meta");
+    const infoSub = infoCard.querySelector(".sub");
+    let lastInfoCountry = null;
+    let lastInfoSubdivision = null;
+
+    function clearInfo() {
+      lastInfoCountry = null; lastInfoSubdivision = null;
+      infoCard.classList.add("hidden");
+      revealLayer.selectAll("path").remove();
+    }
+    function updateInfoFromLastPointer() { if (currentMode === "info") updateInfo(); }
+    function updateInfo() {
+      if (currentMode !== "info") return;
+      const ll = pointerLonLat();
+      if (!ll || isNaN(ll[0]) || isNaN(ll[1])) { clearInfo(); return; }
+      const country = countryFeatures.find(f => d3.geoContains(f, ll));
+      if (!country) { clearInfo(); return; }
+      // Country info
+      infoCard.classList.remove("hidden");
+      const flag = country.properties.flag;
+      const dn = country.properties.displayName;
+      const cap = country.properties.capital;
+      const region = country.properties.subregion || country.properties.continent;
+      infoName.textContent = (flag ? flag + " " : "") + dn;
+      infoMeta.textContent = cap ? ("Capital: " + cap) : "";
+      // Subdivision (lazy load)
+      const subCfg = SUBDIVISIONS[dn];
+      if (subCfg) {
+        ensureSubdivision(dn).then(features => {
+          if (!features || currentMode !== "info") return;
+          const sub = features.find(f => d3.geoContains(f, ll));
+          if (sub) {
+            infoSub.textContent = sub.__displayName + (sub.__capital ? " · " + sub.__capital : "");
+            drawInfoHighlight(country, sub);
+          } else {
+            infoSub.textContent = region;
+            drawInfoHighlight(country, null);
+          }
+        }).catch(err => {
+          console.warn("subdivision load failed for " + dn, err);
+          infoSub.textContent = region;
+          drawInfoHighlight(country, null);
+        });
+      } else {
+        infoSub.textContent = region;
+        drawInfoHighlight(country, null);
+      }
+      lastInfoCountry = country;
+    }
+    function drawInfoHighlight(country, subdivision) {
+      revealLayer.selectAll("path").remove();
+      if (country) {
+        revealLayer.append("path")
+          .attr("class", "info-hit-country")
+          .datum(country)
+          .attr("d", path);
+      }
+      if (subdivision) {
+        revealLayer.append("path")
+          .attr("class", "info-hit-subdivision")
+          .datum(subdivision)
+          .attr("d", path);
+      }
+    }
+
+    // Subdivision lazy loading
+    const subdivisionCache = {};
+    async function ensureSubdivision(countryName) {
+      if (subdivisionCache[countryName] !== undefined) return subdivisionCache[countryName];
+      const cfg = SUBDIVISIONS[countryName];
+      if (!cfg) { subdivisionCache[countryName] = null; return null; }
+      try {
+        const cdnGuess = "https://cdn.jsdelivr.net/gh/codeforgermany/click_that_hood@main/public/data/" + cfg.path;
+        const data = await loadJson(cfg.path, cdnGuess);
+        let features;
+        if (cfg.topojson) {
+          const fc = topojson.feature(data, data.objects[cfg.object]);
+          features = fc.features;
+        } else {
+          features = data.features;
+        }
+        const stripSuffix = cfg.stripSuffix || null;
+        const capitals = cfg.capitals || {};
+        for (const f of features) {
+          let nm = ((f.properties && f.properties[cfg.nameKey]) || "").trim();
+          if (stripSuffix && nm.endsWith(stripSuffix)) nm = nm.slice(0, -stripSuffix.length);
+          f.__displayName = nm;
+          f.__capital = capitals[nm] || "";
+          if (cfg.reverseWinding) reverseRings(f.geometry);
+        }
+        subdivisionCache[countryName] = features;
+        return features;
+      } catch (e) {
+        console.warn("Failed loading subdivisions for " + countryName + ":", e);
+        subdivisionCache[countryName] = null;
+        return null;
+      }
+    }
+    function reverseRings(g) {
+      if (!g) return;
+      if (g.type === "Polygon") g.coordinates = g.coordinates.map(r => r.slice().reverse());
+      else if (g.type === "MultiPolygon") g.coordinates = g.coordinates.map(p => p.map(r => r.slice().reverse()));
+    }
+
+    // ---- Measure mode ----
+    const measurePoints = []; // each { lon, lat }
+    const measureCard = document.getElementById("measure-card");
+    const measureName = measureCard.querySelector(".name");
+    const measureMeta = measureCard.querySelector(".meta");
+    document.getElementById("measure-clear").addEventListener("click", clearMeasurement);
+    document.getElementById("measure-undo").addEventListener("click", () => {
+      measurePoints.pop();
+      updateMeasureView();
+    });
+    function clearMeasurement() {
+      measurePoints.length = 0;
+      updateMeasureView();
+    }
+    svgEl.addEventListener("click", (e) => {
+      if (currentMode !== "measure") return;
+      // Don't add if it's the end of a drag — d3.zoom emits drag without click,
+      // but native click still fires on mouseup at the same spot. Filter by
+      // very small movement: zoom transform didn't change ... easier: check
+      // the event happened on svg directly (not on a measurement helper).
+      const [px, py] = d3.pointer(e, svgEl);
+      lastPointer = [px, py];
+      const ll = pointerLonLat();
+      if (!ll || isNaN(ll[0]) || isNaN(ll[1])) return;
+      measurePoints.push({ lon: ll[0], lat: ll[1] });
+      updateMeasureView();
+    });
+    function updateMeasureView() {
+      measureG.selectAll("*").remove();
+      if (measurePoints.length === 0) {
+        measureName.textContent = "Click to add points";
+        measureMeta.textContent = "";
+        return;
+      }
+      const k = d3.zoomTransform(svgEl).k;
+      const measureFontPx = MEASURE_LABEL_PX / k;
+      const measureStrokePx = 3 / k;
+      const pointR = 3.5 / k;
+      const labelOffsetPx = 7 / k;
+      // Build a great-circle linestring through the points
+      if (measurePoints.length >= 2) {
+        const line = { type: "LineString", coordinates: measurePoints.map(p => [p.lon, p.lat]) };
+        measureG.append("path")
+          .datum(line)
+          .attr("class", "measure-line")
+          .attr("d", path);
+        for (let i = 1; i < measurePoints.length; i++) {
+          const a = measurePoints[i-1], b = measurePoints[i];
+          const dKm = d3.geoDistance([a.lon, a.lat], [b.lon, b.lat]) * EARTH_KM;
+          const mid = midpointGeo(a, b);
+          const xy = projection(mid);
+          if (!xy || isNaN(xy[0])) continue;
+          measureG.append("text")
+            .attr("class", "measure-label")
+            .attr("x", xy[0]).attr("y", xy[1] - labelOffsetPx)
+            .attr("text-anchor", "middle")
+            .attr("font-size", measureFontPx)
+            .attr("stroke-width", measureStrokePx)
+            .text(formatKm(dKm));
+        }
+      }
+      for (let i = 0; i < measurePoints.length; i++) {
+        const p = measurePoints[i];
+        const xy = projection([p.lon, p.lat]);
+        if (!xy || isNaN(xy[0])) continue;
+        measureG.append("circle")
+          .attr("class", "measure-point")
+          .attr("cx", xy[0]).attr("cy", xy[1])
+          .attr("r", pointR);
+      }
+      // Card text
+      let total = 0;
+      for (let i = 1; i < measurePoints.length; i++) {
+        total += d3.geoDistance(
+          [measurePoints[i-1].lon, measurePoints[i-1].lat],
+          [measurePoints[i].lon, measurePoints[i].lat]
+        ) * EARTH_KM;
+      }
+      if (measurePoints.length === 1) {
+        measureName.textContent = "Add another point…";
+        measureMeta.textContent = formatLonLat(measurePoints[0]);
+      } else {
+        measureName.textContent = formatKm(total) + " total";
+        measureMeta.textContent = (measurePoints.length - 1) + " segment" + (measurePoints.length > 2 ? "s" : "") + " · " + measurePoints.length + " points";
+      }
+    }
+    function midpointGeo(a, b) {
+      const i = d3.geoInterpolate([a.lon, a.lat], [b.lon, b.lat]);
+      return i(0.5);
+    }
+    function formatKm(km) {
+      if (km < 1) return (km * 1000).toFixed(0) + " m";
+      if (km < 100) return km.toFixed(2) + " km";
+      return km.toLocaleString(undefined, { maximumFractionDigits: 0 }) + " km";
+    }
+    function formatLonLat(p) {
+      const lat = p.lat.toFixed(3) + "°" + (p.lat >= 0 ? "N" : "S").replace(p.lat >= 0 ? "" : "N", "");
+      const latS = (Math.abs(p.lat).toFixed(3)) + "°" + (p.lat >= 0 ? "N" : "S");
+      const lonS = (Math.abs(p.lon).toFixed(3)) + "°" + (p.lon >= 0 ? "E" : "W");
+      return latS + " " + lonS;
+    }
+
+    // ---- Mode tabs ----
+    let currentMode = "navigate";
+    document.querySelectorAll(".mode-tab").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".mode-tab").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentMode = btn.dataset.mode;
+        document.body.classList.toggle("info-mode", currentMode === "info");
+        document.body.classList.toggle("measure-mode", currentMode === "measure");
+        if (currentMode !== "info") clearInfo();
+        if (currentMode !== "measure") { /* keep points cached */ }
+        updateMeasureView();
+      });
+    });
+
+    // ---- Visibility toggles ----
+    document.getElementById("lakes-toggle").addEventListener("change", e => lakesPath.style("display", e.target.checked ? null : "none"));
+    document.getElementById("rivers-toggle").addEventListener("change", e => riversPath.style("display", e.target.checked ? null : "none"));
+    document.getElementById("graticule-toggle").addEventListener("change", e => graticulePath.style("display", e.target.checked ? null : "none"));
+    document.getElementById("labels-toggle").addEventListener("change", e => {
+      labelsVisible = e.target.checked;
+      const t = d3.zoomTransform(svgEl);
+      updateLabels(t.k);
+    });
+
+    // ---- Color settings ----
+    function withAlpha(hex, alpha) {
+      const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+      return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+    }
+    document.getElementById("bg-color").addEventListener("input", e => document.body.style.background = e.target.value);
+    document.getElementById("land-color").addEventListener("input", e => document.documentElement.style.setProperty("--land", e.target.value));
+    document.getElementById("ocean-color").addEventListener("input", e => {
+      document.documentElement.style.setProperty("--ocean", e.target.value);
+      document.documentElement.style.setProperty("--ocean-stroke", withAlpha(e.target.value, 0.25));
+    });
+    document.getElementById("river-color").addEventListener("input", e => document.documentElement.style.setProperty("--rivers", e.target.value));
+    document.getElementById("highlight-color").addEventListener("input", e => {
+      document.documentElement.style.setProperty("--hl-stroke", e.target.value);
+      document.documentElement.style.setProperty("--hl-fill", withAlpha(e.target.value, 0.22));
+    });
+    document.getElementById("measure-color").addEventListener("input", e => {
+      document.documentElement.style.setProperty("--measure", e.target.value);
+      document.documentElement.style.setProperty("--measure-fill", withAlpha(e.target.value, 0.18));
+    });
+
+    const SCHEMES = {
+      classic:   { bg:"#050912", land:"#3d6b48", ocean:"#16335a", rivers:"#78aae6", highlight:"#7ec8ff", measure:"#ffd54a" },
+      daylight:  { bg:"#e8e4d8", land:"#c9b88c", ocean:"#b9d6e8", rivers:"#4a7eb3", highlight:"#2d6cb0", measure:"#d4861c" },
+      parchment: { bg:"#2a1f15", land:"#d4a373", ocean:"#3a4a5c", rivers:"#6a8aa8", highlight:"#c9a017", measure:"#b03020" },
+      neon:      { bg:"#0a0014", land:"#143a3a", ocean:"#0d1a3a", rivers:"#1bd0ff", highlight:"#ff2dc8", measure:"#f5e02b" },
+      mono:      { bg:"#0d0d0d", land:"#4a4a4a", ocean:"#1f1f1f", rivers:"#8a8a8a", highlight:"#ffffff", measure:"#e0e0e0" },
+      sunset:    { bg:"#1f0d18", land:"#8b4a3a", ocean:"#3a2433", rivers:"#e89358", highlight:"#ffd1a3", measure:"#ffe45c" },
+    };
+    function applyScheme(name) {
+      const s = SCHEMES[name]; if (!s) return;
+      document.body.style.background = s.bg;
+      document.getElementById("bg-color").value = s.bg;
+      const root = document.documentElement.style;
+      root.setProperty("--land", s.land); document.getElementById("land-color").value = s.land;
+      root.setProperty("--ocean", s.ocean); root.setProperty("--ocean-stroke", withAlpha(s.ocean, 0.25));
+      document.getElementById("ocean-color").value = s.ocean;
+      root.setProperty("--rivers", s.rivers); document.getElementById("river-color").value = s.rivers;
+      root.setProperty("--hl-stroke", s.highlight); root.setProperty("--hl-fill", withAlpha(s.highlight, 0.22));
+      document.getElementById("highlight-color").value = s.highlight;
+      root.setProperty("--measure", s.measure); root.setProperty("--measure-fill", withAlpha(s.measure, 0.18));
+      document.getElementById("measure-color").value = s.measure;
+    }
+    document.querySelectorAll(".scheme-btn").forEach(b => b.addEventListener("click", () => applyScheme(b.dataset.scheme)));
+
+    // ---- Settings panel ----
+    const panel = document.getElementById("settings-panel");
+    document.getElementById("settings-btn").addEventListener("click", () => panel.classList.toggle("open"));
+    document.getElementById("close-settings").addEventListener("click", () => panel.classList.remove("open"));
+
+    // ---- Resize ----
+    window.addEventListener("resize", () => {
+      width = window.innerWidth; height = window.innerHeight;
+      svg.attr("width", width).attr("height", height);
+      oceanRect.attr("width", width).attr("height", height);
+      positionReticle();
+    });
+
+    document.getElementById("loading").remove();
+  })().catch(err => {
+    console.error(err);
+    const l = document.getElementById("loading");
+    if (l) l.textContent = "Failed to load: " + (err.message || err);
+  });
+  </script>
+</body>
+</html>
