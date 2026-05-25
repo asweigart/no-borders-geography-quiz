@@ -29,10 +29,10 @@
   #map.dragging { cursor: grabbing; }
   body.info-mode #map, body.measure-mode #map { cursor: crosshair; }
 
-  #map rect.ocean { fill: var(--ocean); }
+  #map rect.layer-ocean, #map path.layer-ocean { fill: var(--ocean); }
   #map path.layer-graticule { fill: none; stroke: rgba(255,255,255,0.07); stroke-width: 0.5; }
-  #map path.layer-land { fill: var(--land); stroke: var(--border); stroke-width: 0.4; stroke-linejoin: round; }
-  #map path.layer-lakes { fill: var(--ocean); stroke: var(--ocean-stroke); stroke-width: 0.3; }
+  #map path.layer-land { fill: var(--land); stroke: none; }
+  #map path.layer-lakes { fill: var(--ocean); stroke: none; }
   #map path.layer-rivers { fill: none; stroke: var(--rivers); stroke-width: 0.5; stroke-linejoin: round; stroke-linecap: round; }
   #map path.subdivision { fill: none; stroke: rgba(255,255,255,0.18); stroke-width: 0.3; }
   #map path.info-hit-country { fill: none; stroke: var(--hl-stroke); stroke-width: 1.4; stroke-dasharray: 5 3; vector-effect: non-scaling-stroke; pointer-events: none; }
@@ -139,6 +139,17 @@
   .control-toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px 0; font-size: 14px; }
   input[type="checkbox"] { accent-color: #5a8be6; width: 15px; height: 15px; cursor: pointer; }
 
+  .export-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .export-btn {
+    padding: 9px 8px;
+    background: rgba(255,255,255,0.04); color: #e8eef8;
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 6px;
+    cursor: pointer; font-family: inherit; font-size: 13px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .export-btn:hover:not(:disabled) { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); }
+  .export-btn:disabled { opacity: 0.5; cursor: progress; }
+
   .scheme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 14px; }
   .scheme-btn {
     display: flex; flex-direction: column; gap: 4px; padding: 6px;
@@ -203,6 +214,15 @@
         <button class="mode-tab active" data-mode="navigate">Navigate</button>
         <button class="mode-tab" data-mode="info">Info</button>
         <button class="mode-tab" data-mode="measure">Measure</button>
+      </div>
+    </details>
+
+    <details class="group">
+      <summary>Export</summary>
+      <div class="export-grid">
+        <button class="export-btn" type="button" data-format="svg">SVG</button>
+        <button class="export-btn" type="button" data-format="png">PNG</button>
+        <button class="export-btn" type="button" data-format="webp">WebP</button>
       </div>
     </details>
 
@@ -419,11 +439,21 @@
     //     country labels
     //     measure lines + points + labels
     //   reticle (fixed at viewport center on touch)
-    const oceanRect = svg.append("rect")
-      .attr("class", "ocean")
-      .attr("x", 0).attr("y", 0).attr("width", width).attr("height", height);
-
     const viewG = svg.append("g").attr("id", "view");
+
+    // Ocean = Robinson's natural world outline (curved rectangle).
+    // Use a SEPARATE non-rotating projection to compute the outline path so
+    // spinning the globe doesn't reshape it — the world boundary is fixed.
+    // Drawn inside viewG so it pans/zooms with the map; the body background
+    // shows around it.
+    const _oceanProjection = d3.geoRobinson()
+      .scale(baseScale)
+      .translate([width/2, height/2])
+      .precision(0.5);
+    const _oceanPath = d3.geoPath(_oceanProjection);
+    const oceanShape = viewG.append("path")
+      .attr("class", "layer-ocean")
+      .attr("d", _oceanPath({ type: "Sphere" }));
 
     const graticulePath = viewG.append("path")
       .attr("class", "layer-graticule")
@@ -947,11 +977,113 @@
     document.getElementById("settings-btn").addEventListener("click", () => panel.classList.toggle("open"));
     document.getElementById("close-settings").addEventListener("click", () => panel.classList.remove("open"));
 
+    // ---- Export (SVG / PNG / WebP) ----
+    // Clones the live SVG (visibility toggles are already inline display:none,
+    // so they carry over), prepends a <style> block with all the page CSS +
+    // the current CSS-var values, and prepends a background rect using the
+    // body's bg color. The result is a self-contained SVG that renders the
+    // same way standalone.
+    const EXPORT_NAME = "robinson-world-map";
+
+    function buildExportSvg() {
+      const clone = svgEl.cloneNode(true);
+      clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+      clone.setAttribute("width", width);
+      clone.setAttribute("height", height);
+      clone.setAttribute("viewBox", "0 0 " + width + " " + height);
+
+      const computed = getComputedStyle(document.documentElement);
+      const vars = ["--bg","--ocean","--ocean-stroke","--land","--rivers",
+                    "--border","--label","--label-shadow",
+                    "--hl-stroke","--hl-fill","--measure","--measure-fill"];
+      const varDecls = vars.map(v => v + ": " + computed.getPropertyValue(v).trim() + ";").join(" ");
+      const pageCss = Array.from(document.querySelectorAll("style"))
+        .map(s => s.textContent).join("\n");
+
+      const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+      style.textContent = ":root { " + varDecls + " }\n" + pageCss;
+
+      const bg = getComputedStyle(document.body).backgroundColor || "#050912";
+      const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      bgRect.setAttribute("x", "0"); bgRect.setAttribute("y", "0");
+      bgRect.setAttribute("width", width); bgRect.setAttribute("height", height);
+      bgRect.setAttribute("fill", bg);
+
+      clone.insertBefore(bgRect, clone.firstChild);
+      clone.insertBefore(style, clone.firstChild);
+      return clone;
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+    function serializeExportSvg() {
+      return new XMLSerializer().serializeToString(buildExportSvg());
+    }
+
+    function exportAsSvg() {
+      const str = serializeExportSvg();
+      const blob = new Blob([
+        '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n', str
+      ], { type: "image/svg+xml;charset=utf-8" });
+      downloadBlob(blob, EXPORT_NAME + ".svg");
+    }
+
+    async function exportAsRaster(format) {
+      const str = serializeExportSvg();
+      const dataUrl = "data:image/svg+xml;base64," +
+        btoa(unescape(encodeURIComponent(str)));
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error("SVG image load failed"));
+        img.src = dataUrl;
+      });
+      const dpi = 2;
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(width * dpi);
+      canvas.height = Math.round(height * dpi);
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const mime = format === "webp" ? "image/webp" : "image/png";
+      const quality = format === "webp" ? 0.95 : undefined;
+      await new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (!blob) return reject(new Error("toBlob returned null (format unsupported?)"));
+          downloadBlob(blob, EXPORT_NAME + "." + format);
+          resolve();
+        }, mime, quality);
+      });
+    }
+
+    document.querySelectorAll(".export-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const fmt = btn.dataset.format;
+        btn.disabled = true;
+        try {
+          if (fmt === "svg") exportAsSvg();
+          else await exportAsRaster(fmt);
+        } catch (err) {
+          console.error("Export failed:", err);
+          alert("Export failed: " + (err.message || err));
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
+
     // ---- Resize ----
     window.addEventListener("resize", () => {
       width = window.innerWidth; height = window.innerHeight;
       svg.attr("width", width).attr("height", height);
-      oceanRect.attr("width", width).attr("height", height);
       positionReticle();
     });
 
