@@ -208,7 +208,7 @@ EN = {
     "ds.nepalese-provinces": "Nepalese provinces",
     "ds.new-zealand-regions": "New Zealand regions",
     # --- color schemes ---
-    "scheme.classic": "Classic",
+    "scheme.classic": "Default",  # the baseline palette (id stays "classic")
     "scheme.daylight": "Daylight",
     "scheme.parchment": "Parchment",
     "scheme.neon": "Neon",
@@ -220,6 +220,11 @@ EN = {
     "scheme.arctic": "Arctic",
     "scheme.volcanic": "Volcanic",
     "scheme.topographic": "Topographic",
+    # --- color scheme import/export/reset ---
+    "scheme.export": "Export",
+    "scheme.import": "Import",
+    "scheme.reset": "Reset",
+    "scheme.reset_confirm": "Reset colors to the default scheme?",
 }
 
 # Per-language overrides. Each TR[code] holds the full key set for that
@@ -5492,6 +5497,70 @@ TR["sr"].update({"quiz.try_again": "Покушај поново", "quiz.show_ans
 TR["hr"].update({"quiz.try_again": "Pokušaj ponovno", "quiz.show_answer": "Prikaži odgovor", "quiz.next": "Dalje", "quiz.correct": "Točno!"})
 TR["sl"].update({"quiz.try_again": "Poskusi znova", "quiz.show_answer": "Pokaži odgovor", "quiz.next": "Naprej", "quiz.correct": "Pravilno!"})
 TR["ca"].update({"quiz.try_again": "Torna-ho a provar", "quiz.show_answer": "Mostra la resposta", "quiz.next": "Següent", "quiz.correct": "Correcte!"})
+
+# The "classic" scheme is the app's baseline palette; relabel it "Default".
+_SCHEME_DEFAULT = {
+    "zh": "默认", "es": "Predeterminado", "ar": "افتراضي", "id": "Bawaan",
+    "pt": "Padrão", "fr": "Par défaut", "ja": "デフォルト", "ru": "По умолчанию",
+    "de": "Standard", "hi": "डिफ़ॉल्ट", "bn": "ডিফল্ট", "ur": "ڈیفالٹ",
+    "ko": "기본값", "vi": "Mặc định", "tr": "Varsayılan", "it": "Predefinito",
+    "nl": "Standaard", "pl": "Domyślny", "th": "ค่าเริ่มต้น", "fa": "پیش‌فرض",
+    "uk": "За замовчуванням", "cs": "Výchozí", "ms": "Lalai", "ro": "Implicit",
+    "el": "Προεπιλογή", "he": "ברירת מחדל", "sv": "Standard", "fil": "Default",
+    "ta": "இயல்புநிலை", "hu": "Alapértelmezett", "da": "Standard", "fi": "Oletus",
+    "nb": "Standard", "sk": "Predvolené", "bg": "По подразбиране",
+    "sr": "Подразумевано", "hr": "Zadano", "sl": "Privzeto", "ca": "Predeterminat",
+}
+for _c, _v in _SCHEME_DEFAULT.items():
+    TR[_c]["scheme.classic"] = _v
+
+# Color-scheme import/export/reset buttons + reset confirmation prompt.
+_SCHEME_IO = {
+    "zh": ("导出", "导入", "重置", "将颜色重置为默认配色方案？"),
+    "es": ("Exportar", "Importar", "Restablecer", "¿Restablecer los colores al esquema predeterminado?"),
+    "ar": ("تصدير", "استيراد", "إعادة تعيين", "إعادة تعيين الألوان إلى النظام الافتراضي؟"),
+    "id": ("Ekspor", "Impor", "Atur Ulang", "Atur ulang warna ke skema bawaan?"),
+    "pt": ("Exportar", "Importar", "Redefinir", "Redefinir as cores para o esquema padrão?"),
+    "fr": ("Exporter", "Importer", "Réinitialiser", "Réinitialiser les couleurs au thème par défaut ?"),
+    "ja": ("エクスポート", "インポート", "リセット", "色をデフォルトの配色にリセットしますか？"),
+    "ru": ("Экспорт", "Импорт", "Сброс", "Сбросить цвета к схеме по умолчанию?"),
+    "de": ("Exportieren", "Importieren", "Zurücksetzen", "Farben auf das Standardschema zurücksetzen?"),
+    "hi": ("निर्यात", "आयात", "रीसेट", "रंगों को डिफ़ॉल्ट स्कीम पर रीसेट करें?"),
+    "bn": ("রপ্তানি", "আমদানি", "রিসেট", "রং ডিফল্ট স্কিমে রিসেট করবেন?"),
+    "ur": ("ایکسپورٹ", "امپورٹ", "ری سیٹ", "رنگوں کو ڈیفالٹ اسکیم پر ری سیٹ کریں؟"),
+    "ko": ("내보내기", "가져오기", "초기화", "색상을 기본 구성표로 초기화할까요?"),
+    "vi": ("Xuất", "Nhập", "Đặt lại", "Đặt lại màu về bảng màu mặc định?"),
+    "tr": ("Dışa aktar", "İçe aktar", "Sıfırla", "Renkler varsayılan şemaya sıfırlansın mı?"),
+    "it": ("Esporta", "Importa", "Reimposta", "Reimpostare i colori sullo schema predefinito?"),
+    "nl": ("Exporteren", "Importeren", "Resetten", "Kleuren terugzetten naar het standaardschema?"),
+    "pl": ("Eksportuj", "Importuj", "Resetuj", "Zresetować kolory do schematu domyślnego?"),
+    "th": ("ส่งออก", "นำเข้า", "รีเซ็ต", "รีเซ็ตสีเป็นชุดสีเริ่มต้นหรือไม่?"),
+    "fa": ("برون‌بری", "درون‌بری", "بازنشانی", "رنگ‌ها به طرح پیش‌فرض بازنشانی شوند؟"),
+    "uk": ("Експорт", "Імпорт", "Скинути", "Скинути кольори до схеми за замовчуванням?"),
+    "cs": ("Exportovat", "Importovat", "Obnovit", "Obnovit barvy na výchozí schéma?"),
+    "ms": ("Eksport", "Import", "Set Semula", "Set semula warna kepada skema lalai?"),
+    "ro": ("Exportă", "Importă", "Resetează", "Resetați culorile la schema implicită?"),
+    "el": ("Εξαγωγή", "Εισαγωγή", "Επαναφορά", "Επαναφορά χρωμάτων στο προεπιλεγμένο σχήμα;"),
+    "he": ("ייצוא", "ייבוא", "איפוס", "לאפס את הצבעים לערכת ברירת המחדל?"),
+    "sv": ("Exportera", "Importera", "Återställ", "Återställa färgerna till standardschemat?"),
+    "fil": ("I-export", "I-import", "I-reset", "I-reset ang mga kulay sa default na scheme?"),
+    "ta": ("ஏற்றுமதி", "இறக்குமதி", "மீட்டமை", "வண்ணங்களை இயல்புநிலை திட்டத்திற்கு மீட்டமைக்கவா?"),
+    "hu": ("Exportálás", "Importálás", "Visszaállítás", "Visszaállítja a színeket az alapértelmezett sémára?"),
+    "da": ("Eksportér", "Importér", "Nulstil", "Nulstil farverne til standardskemaet?"),
+    "fi": ("Vie", "Tuo", "Palauta", "Palautetaanko värit oletusmalliin?"),
+    "nb": ("Eksporter", "Importer", "Tilbakestill", "Tilbakestille fargene til standardpaletten?"),
+    "sk": ("Exportovať", "Importovať", "Obnoviť", "Obnoviť farby na predvolenú schému?"),
+    "bg": ("Експортиране", "Импортиране", "Нулиране", "Нулиране на цветовете към схемата по подразбиране?"),
+    "sr": ("Извоз", "Увоз", "Ресетуј", "Ресетовати боје на подразумевану шему?"),
+    "hr": ("Izvoz", "Uvoz", "Poništi", "Poništiti boje na zadanu shemu?"),
+    "sl": ("Izvozi", "Uvozi", "Ponastavi", "Ponastavi barve na privzeto shemo?"),
+    "ca": ("Exporta", "Importa", "Restableix", "Voleu restablir els colors a l'esquema predeterminat?"),
+}
+for _c, _io in _SCHEME_IO.items():
+    TR[_c]["scheme.export"] = _io[0]
+    TR[_c]["scheme.import"] = _io[1]
+    TR[_c]["scheme.reset"] = _io[2]
+    TR[_c]["scheme.reset_confirm"] = _io[3]
 
 # __TR_INSERT__
 
