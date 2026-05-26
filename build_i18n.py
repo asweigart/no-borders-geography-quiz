@@ -147,6 +147,11 @@ EN = {
     "wikipedia": "Wikipedia →",
     "wikipedia_short": "Wiki",
     "capital": "Capital",
+    # --- quiz answer buttons ---
+    "quiz.try_again": "Try Again",
+    "quiz.show_answer": "Show Answer",
+    "quiz.next": "Next",
+    "quiz.correct": "Correct!",
     # --- datasets: world + continents ---
     "ds.countries": "All Countries",
     "ds.region-africa": "Africa",
@@ -5446,6 +5451,47 @@ TR["ca"] = {
     "scheme.volcanic": "Volcànic",
     "scheme.topographic": "Topogràfic",
 }
+
+# Quiz answer buttons (added after the initial per-language tables above).
+TR["zh"].update({"quiz.try_again": "再试一次", "quiz.show_answer": "显示答案", "quiz.next": "下一个", "quiz.correct": "正确！"})
+TR["es"].update({"quiz.try_again": "Reintentar", "quiz.show_answer": "Mostrar respuesta", "quiz.next": "Siguiente", "quiz.correct": "¡Correcto!"})
+TR["ar"].update({"quiz.try_again": "حاول مرة أخرى", "quiz.show_answer": "إظهار الإجابة", "quiz.next": "التالي", "quiz.correct": "صحيح!"})
+TR["id"].update({"quiz.try_again": "Coba Lagi", "quiz.show_answer": "Tampilkan Jawaban", "quiz.next": "Berikutnya", "quiz.correct": "Benar!"})
+TR["pt"].update({"quiz.try_again": "Tentar de novo", "quiz.show_answer": "Mostrar resposta", "quiz.next": "Próximo", "quiz.correct": "Correto!"})
+TR["fr"].update({"quiz.try_again": "Réessayer", "quiz.show_answer": "Afficher la réponse", "quiz.next": "Suivant", "quiz.correct": "Correct !"})
+TR["ja"].update({"quiz.try_again": "もう一度", "quiz.show_answer": "答えを表示", "quiz.next": "次へ", "quiz.correct": "正解！"})
+TR["ru"].update({"quiz.try_again": "Ещё раз", "quiz.show_answer": "Показать ответ", "quiz.next": "Далее", "quiz.correct": "Верно!"})
+TR["de"].update({"quiz.try_again": "Erneut versuchen", "quiz.show_answer": "Antwort anzeigen", "quiz.next": "Weiter", "quiz.correct": "Richtig!"})
+TR["hi"].update({"quiz.try_again": "फिर से कोशिश करें", "quiz.show_answer": "उत्तर दिखाएँ", "quiz.next": "अगला", "quiz.correct": "सही!"})
+TR["bn"].update({"quiz.try_again": "আবার চেষ্টা করুন", "quiz.show_answer": "উত্তর দেখান", "quiz.next": "পরবর্তী", "quiz.correct": "সঠিক!"})
+TR["ur"].update({"quiz.try_again": "دوبارہ کوشش کریں", "quiz.show_answer": "جواب دکھائیں", "quiz.next": "اگلا", "quiz.correct": "درست!"})
+TR["ko"].update({"quiz.try_again": "다시 시도", "quiz.show_answer": "정답 보기", "quiz.next": "다음", "quiz.correct": "정답입니다!"})
+TR["vi"].update({"quiz.try_again": "Thử lại", "quiz.show_answer": "Hiện đáp án", "quiz.next": "Tiếp theo", "quiz.correct": "Chính xác!"})
+TR["tr"].update({"quiz.try_again": "Tekrar dene", "quiz.show_answer": "Cevabı göster", "quiz.next": "İleri", "quiz.correct": "Doğru!"})
+TR["it"].update({"quiz.try_again": "Riprova", "quiz.show_answer": "Mostra risposta", "quiz.next": "Avanti", "quiz.correct": "Corretto!"})
+TR["nl"].update({"quiz.try_again": "Opnieuw", "quiz.show_answer": "Toon antwoord", "quiz.next": "Volgende", "quiz.correct": "Juist!"})
+TR["pl"].update({"quiz.try_again": "Spróbuj ponownie", "quiz.show_answer": "Pokaż odpowiedź", "quiz.next": "Dalej", "quiz.correct": "Poprawnie!"})
+TR["th"].update({"quiz.try_again": "ลองอีกครั้ง", "quiz.show_answer": "แสดงคำตอบ", "quiz.next": "ถัดไป", "quiz.correct": "ถูกต้อง!"})
+TR["fa"].update({"quiz.try_again": "دوباره تلاش کنید", "quiz.show_answer": "نمایش پاسخ", "quiz.next": "بعدی", "quiz.correct": "درست!"})
+TR["uk"].update({"quiz.try_again": "Спробувати ще раз", "quiz.show_answer": "Показати відповідь", "quiz.next": "Далі", "quiz.correct": "Правильно!"})
+TR["cs"].update({"quiz.try_again": "Zkusit znovu", "quiz.show_answer": "Zobrazit odpověď", "quiz.next": "Další", "quiz.correct": "Správně!"})
+TR["ms"].update({"quiz.try_again": "Cuba Lagi", "quiz.show_answer": "Tunjuk Jawapan", "quiz.next": "Seterusnya", "quiz.correct": "Betul!"})
+TR["ro"].update({"quiz.try_again": "Încearcă din nou", "quiz.show_answer": "Arată răspunsul", "quiz.next": "Următorul", "quiz.correct": "Corect!"})
+TR["el"].update({"quiz.try_again": "Δοκίμασε ξανά", "quiz.show_answer": "Εμφάνιση απάντησης", "quiz.next": "Επόμενο", "quiz.correct": "Σωστό!"})
+TR["he"].update({"quiz.try_again": "נסה שוב", "quiz.show_answer": "הצג תשובה", "quiz.next": "הבא", "quiz.correct": "נכון!"})
+TR["sv"].update({"quiz.try_again": "Försök igen", "quiz.show_answer": "Visa svar", "quiz.next": "Nästa", "quiz.correct": "Rätt!"})
+TR["fil"].update({"quiz.try_again": "Subukang Muli", "quiz.show_answer": "Ipakita ang Sagot", "quiz.next": "Susunod", "quiz.correct": "Tama!"})
+TR["ta"].update({"quiz.try_again": "மீண்டும் முயற்சி", "quiz.show_answer": "பதிலைக் காட்டு", "quiz.next": "அடுத்து", "quiz.correct": "சரி!"})
+TR["hu"].update({"quiz.try_again": "Újra", "quiz.show_answer": "Válasz megjelenítése", "quiz.next": "Tovább", "quiz.correct": "Helyes!"})
+TR["da"].update({"quiz.try_again": "Prøv igen", "quiz.show_answer": "Vis svar", "quiz.next": "Næste", "quiz.correct": "Rigtigt!"})
+TR["fi"].update({"quiz.try_again": "Yritä uudelleen", "quiz.show_answer": "Näytä vastaus", "quiz.next": "Seuraava", "quiz.correct": "Oikein!"})
+TR["nb"].update({"quiz.try_again": "Prøv igjen", "quiz.show_answer": "Vis svar", "quiz.next": "Neste", "quiz.correct": "Riktig!"})
+TR["sk"].update({"quiz.try_again": "Skúsiť znova", "quiz.show_answer": "Zobraziť odpoveď", "quiz.next": "Ďalej", "quiz.correct": "Správne!"})
+TR["bg"].update({"quiz.try_again": "Опитай отново", "quiz.show_answer": "Покажи отговора", "quiz.next": "Следващ", "quiz.correct": "Правилно!"})
+TR["sr"].update({"quiz.try_again": "Покушај поново", "quiz.show_answer": "Прикажи одговор", "quiz.next": "Следеће", "quiz.correct": "Тачно!"})
+TR["hr"].update({"quiz.try_again": "Pokušaj ponovno", "quiz.show_answer": "Prikaži odgovor", "quiz.next": "Dalje", "quiz.correct": "Točno!"})
+TR["sl"].update({"quiz.try_again": "Poskusi znova", "quiz.show_answer": "Pokaži odgovor", "quiz.next": "Naprej", "quiz.correct": "Pravilno!"})
+TR["ca"].update({"quiz.try_again": "Torna-ho a provar", "quiz.show_answer": "Mostra la resposta", "quiz.next": "Següent", "quiz.correct": "Correcte!"})
 
 # __TR_INSERT__
 
