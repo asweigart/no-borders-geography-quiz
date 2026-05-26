@@ -37,6 +37,7 @@
   #globe path.layer-rivers { fill: none; stroke: var(--rivers); stroke-width: 0.6; stroke-linejoin: round; stroke-linecap: round; }
   #globe path.info-hit { fill: var(--hl-fill); stroke: var(--hl-stroke); stroke-width: 1.5; stroke-linejoin: round; }
   #globe path.reveal-clicked { fill: var(--clicked-fill); stroke: var(--clicked-stroke); stroke-width: 1.5; stroke-linejoin: round; }
+  #globe path.selection-hit { fill: var(--clicked-fill); stroke: var(--clicked-stroke); stroke-width: 1.5; stroke-linejoin: round; }
   #globe path.reveal-correct { fill: var(--correct-fill); stroke: var(--correct-stroke); stroke-width: 1.5; stroke-linejoin: round; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
@@ -73,6 +74,13 @@
   #prompt-card.tour { border-color: rgba(120, 220, 255, 0.5); }
   #prompt-card.show-all { border-color: rgba(180, 220, 170, 0.5); }
   #prompt-card.hidden-card { display: none; }
+  #prompt-wiki {
+    display: inline-block; margin-top: 8px;
+    font-size: 12px; color: #7ec8ff; text-decoration: none;
+    pointer-events: auto;  /* #hud is pointer-events:none */
+  }
+  #prompt-wiki:hover { text-decoration: underline; }
+  #prompt-wiki[hidden] { display: none; }
   #prompt-label {
     font-size: 11px; opacity: 0.55; text-transform: uppercase;
     letter-spacing: 1.5px; margin-bottom: 6px;
@@ -369,6 +377,7 @@
       <div id="prompt-label">Click on</div>
       <div id="prompt-name">—</div>
       <div id="prompt-meta"></div>
+      <a id="prompt-wiki" target="_blank" rel="noopener" hidden></a>
     </div>
   </div>
 
@@ -3041,8 +3050,13 @@
       })
       .on("end", (event) => {
         svgEl.classList.remove("dragging");
-        if (!pressMoved && pressStart && mode !== "info") {
-          handleClick(pressStart[0], pressStart[1]);
+        if (!pressMoved && pressStart) {
+          if (mode === "quiz") {
+            handleClick(pressStart[0], pressStart[1]);
+          } else {
+            // info / show-all / tour: click toggles a sticky selection
+            handleSelectClick(pressStart[0], pressStart[1]);
+          }
         }
         pressStart = null;
       });
@@ -3078,6 +3092,7 @@
     svgEl.addEventListener("touchstart", (event) => {
       if (event.touches.length === 2) {
         pinching = true;
+        pressMoved = true;  // a two-finger gesture must not end as a select tap
         pinchStartDist = touchDist(event.touches);
         pinchStartScale = projection.scale();
       }
@@ -3704,6 +3719,47 @@
     const promptLabel = document.getElementById("prompt-label");
     const promptName = document.getElementById("prompt-name");
     const promptMeta = document.getElementById("prompt-meta");
+    const promptWiki = document.getElementById("prompt-wiki");
+
+    // ---- Internationalization (i18n) ----
+    // Per-language config. Only English is wired up now; more languages
+    // (translated UI strings + localized Wikipedia host/titles) get added to
+    // this table and surfaced in the Language selector later.
+    const I18N = {
+      en: {
+        wikiBase: "https://en.wikipedia.org/wiki/",
+        // Article title to link to; defaults to the displayed name. Other
+        // languages can override with a localized title lookup.
+        wikiTitle: (feature) => feature.properties.displayName,
+        strings: {
+          wikipedia: "Wikipedia →",
+          capital: "Capital",
+        },
+      },
+    };
+    let currentLang = "en";
+
+    // Look up a UI string for the current language, falling back to English
+    // and finally the provided default.
+    function i18n(key, fallback) {
+      const cfg = I18N[currentLang] || I18N.en;
+      if (cfg.strings && cfg.strings[key] != null) return cfg.strings[key];
+      if (I18N.en.strings[key] != null) return I18N.en.strings[key];
+      return fallback != null ? fallback : key;
+    }
+
+    function wikiUrlFor(feature) {
+      const cfg = I18N[currentLang] || I18N.en;
+      const title = (cfg.wikiTitle && cfg.wikiTitle(feature)) || feature.properties.displayName || "";
+      return cfg.wikiBase + encodeURIComponent(title.replace(/ /g, "_"));
+    }
+
+    document.getElementById("language-select").addEventListener("change", (e) => {
+      currentLang = e.target.value;
+      // Refresh the currently shown info pane so its text/link update.
+      if (selectedFeature) showInfo("Selected", selectedFeature);
+      else if (mode === "info" || mode === "show-all") updateInfo();
+    });
 
     function datasetFeatures() {
       return datasets.get(dataset)?.features || [];
@@ -3727,6 +3783,7 @@
         promptLabel.textContent = "—";
         promptName.textContent = "No regions selected";
         promptMeta.textContent = "Open settings to enable some.";
+        promptWiki.hidden = true;
         return;
       }
       if (bag.length === 0) {
@@ -3749,13 +3806,17 @@
       const flag = feature.properties.flag || "";
       promptName.textContent = `${flag} ${feature.properties.displayName}`.trim();
       const cap = feature.properties.capital;
-      promptMeta.textContent = cap ? `Capital: ${cap}` : "";
+      promptMeta.textContent = cap ? `${i18n("capital", "Capital")}: ${cap}` : "";
+      promptWiki.textContent = i18n("wikipedia", "Wikipedia →");
+      promptWiki.href = wikiUrlFor(feature);
+      promptWiki.hidden = false;
     }
 
     function showEmpty(labelText, hint) {
       promptLabel.textContent = labelText;
       promptName.textContent = hint || "—";
       promptMeta.textContent = "";
+      promptWiki.hidden = true;
     }
 
     function handleClick(svgX, svgY) {
@@ -3809,6 +3870,52 @@
     let infoPos = null;          // last pointer position over the svg, or null
     let pointerOverSvg = false;
     let lastInfoHit = null;
+    // Sticky selection used in info / show-all / tour modes. While set, the
+    // info pane is pinned to this feature and hover does not change it.
+    let selectedFeature = null;
+
+    function drawSelection() {
+      // Clear hover / tour highlights and draw just the selection in the
+      // "clicked country" colour.
+      revealLayer.selectAll("path").remove();
+      if (selectedFeature) {
+        revealLayer.append("path")
+          .attr("class", "selection-hit")
+          .datum(selectedFeature)
+          .attr("d", path);
+      }
+    }
+
+    function selectFeature(feature) {
+      selectedFeature = feature;
+      lastInfoHit = feature;
+      if (tourTimer) { clearTimeout(tourTimer); tourTimer = null; }  // pause tour
+      drawSelection();
+      showInfo("Selected", feature);
+    }
+
+    function deselectFeature() {
+      if (!selectedFeature) return;
+      selectedFeature = null;
+      lastInfoHit = null;
+      revealLayer.selectAll("path").remove();
+      if (mode === "tour") {
+        tourTick();           // resume the tour
+      } else {
+        updateInfo();         // resume hover info
+      }
+    }
+
+    function handleSelectClick(svgX, svgY) {
+      // Any click while a feature is selected deselects it (and does not
+      // select a new one).
+      if (selectedFeature) { deselectFeature(); return; }
+      const coords = projection.invert([svgX, svgY]);
+      if (!coords || isNaN(coords[0]) || isNaN(coords[1])) return;
+      const hit = datasetFeatures().find(f => d3.geoContains(f, coords));
+      if (!hit) return;       // clicked open ocean with nothing selected
+      selectFeature(hit);
+    }
 
     function showInfoHighlight(feature) {
       if (lastInfoHit === feature) {
@@ -3833,6 +3940,7 @@
 
     function updateInfoAt(pos) {
       if (mode !== "info" && mode !== "show-all") return;
+      if (selectedFeature) return;  // pinned to the selection
       const coords = projection.invert(pos);
       if (!coords || isNaN(coords[0]) || isNaN(coords[1])) {
         showInfoDefault();
@@ -3851,6 +3959,7 @@
 
     function updateInfo() {
       if (mode !== "info" && mode !== "show-all") return;
+      if (selectedFeature) return;  // pinned to the selection
       if (IS_TOUCH) {
         updateInfoAt([width / 2, height / 2]);
       } else if (pointerOverSvg && infoPos) {
@@ -4051,6 +4160,7 @@
         promptLabel.textContent = "Loading";
         promptName.textContent = entry.label;
         promptMeta.textContent = "…";
+        promptWiki.hidden = true;
         try {
           await entry.load();
         } catch (err) {
@@ -4067,6 +4177,8 @@
       applyModeUI();
       animateTo(entry.view.rotate, entry.view.scale);
       lastInfoHit = null;
+      selectedFeature = null;
+      revealLayer.selectAll(".selection-hit").remove();
       if (mode === "quiz") rebuildPool();
       else if (mode === "tour") { stopTour(); startTour(); }
       else if (mode === "info") updateInfo();
@@ -4082,6 +4194,7 @@
       if (prev === "tour") stopTour();
       if (prev === "show-all") bordersLayer.selectAll("path").remove();
       lastInfoHit = null;
+      selectedFeature = null;
       revealLayer.selectAll("path").remove();
       promptCard.classList.remove("revealing");
       promptCard.classList.remove("hidden-card");
