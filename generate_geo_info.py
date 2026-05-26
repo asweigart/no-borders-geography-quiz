@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate _geo_info.md from the No Borders Geography Quiz data files.
 
-Parses no-borders-geography-quiz.html (capitals dicts, registerSubdivision
+Parses no-borders-geography.html (capitals dicts, registerSubdivision
 calls, US_STATES_50, name overrides) and reads the local GeoJSON / world-
 atlas files to produce a prettified markdown listing of every region's
 display name, flag emoji, and capital city.
@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).parent
-HTML_PATH = HERE / "no-borders-geography-quiz.html"
+HTML_PATH = HERE / "no-borders-geography.html"
 OUTPUT_PATH = HERE / "_geo_info.md"
 
 # Per-dataset special behaviour mirroring the JS lambdas (filter / nameClean).
