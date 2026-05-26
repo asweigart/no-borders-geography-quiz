@@ -81,6 +81,24 @@
   }
   #prompt-wiki:hover { text-decoration: underline; }
   #prompt-wiki[hidden] { display: none; }
+
+  #atlas-list { max-height: 340px; overflow-y: auto; margin: -2px -4px; padding: 0 4px; }
+  .atlas-row { display: flex; align-items: center; gap: 6px; }
+  .atlas-name {
+    flex: 1 1 auto; min-width: 0; text-align: left;
+    background: none; border: none; color: #e8eef8;
+    font-family: inherit; font-size: 13px; cursor: pointer;
+    padding: 5px 6px; border-radius: 5px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .atlas-name:hover { background: rgba(80, 130, 230, 0.22); }
+  .atlas-wiki {
+    flex: 0 0 auto; color: #7ec8ff; text-decoration: none;
+    font-size: 11px; padding: 2px 7px;
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 4px;
+  }
+  .atlas-wiki:hover { background: rgba(255,255,255,0.1); }
+  #atlas-empty { font-size: 12px; opacity: 0.5; padding: 4px 6px; }
   #prompt-label {
     font-size: 11px; opacity: 0.55; text-transform: uppercase;
     letter-spacing: 1.5px; margin-bottom: 6px;
@@ -271,8 +289,7 @@
     cursor: pointer;
   }
 
-  .find-wrapper { position: relative; }
-  #find-input {
+  #atlas-search {
     width: 100%; padding: 9px 10px; font-size: 14px;
     background: rgba(255,255,255,0.04);
     color: #e8eef8;
@@ -280,32 +297,9 @@
     border-radius: 7px;
     font-family: inherit;
     outline: none;
+    margin-bottom: 8px;
   }
-  #find-input:focus { border-color: rgba(80, 130, 230, 0.7); }
-  #find-results {
-    list-style: none; margin: 4px 0 0; padding: 4px 0;
-    background: rgba(15, 22, 38, 0.98);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 7px;
-    max-height: 300px; overflow-y: auto;
-    position: absolute; left: 0; right: 0; top: 100%;
-    z-index: 5;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  }
-  #find-results li {
-    padding: 7px 10px; cursor: pointer;
-    font-size: 14px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  #find-results li.active { background: rgba(80, 130, 230, 0.22); }
-  #find-results li:hover { background: rgba(80, 130, 230, 0.16); }
-  #find-results .type-badge {
-    font-size: 10px; opacity: 0.45; text-transform: uppercase;
-    margin-left: auto; letter-spacing: 0.5px;
-  }
-  #find-results .find-name { flex: 1; }
+  #atlas-search:focus { border-color: rgba(80, 130, 230, 0.7); }
 
   .color-input {
     width: 100%; height: 40px;
@@ -436,14 +430,6 @@
     </details>
 
     <details class="group" open>
-      <summary class="group-label">Find</summary>
-      <div class="find-wrapper">
-        <input type="text" id="find-input" placeholder="Search countries or states…" autocomplete="off" spellcheck="false">
-        <ul id="find-results" hidden></ul>
-      </div>
-    </details>
-
-    <details class="group" open>
       <summary class="group-label">Mode</summary>
       <div class="mode-tabs">
         <div class="mode-row">
@@ -456,6 +442,12 @@
         </div>
         <select id="dataset-select"></select>
       </div>
+    </details>
+
+    <details class="group" open id="atlas-group">
+      <summary class="group-label">Atlas</summary>
+      <input type="text" id="atlas-search" placeholder="Search countries or states…" autocomplete="off" spellcheck="false">
+      <div id="atlas-list"></div>
     </details>
 
     <details class="group">
@@ -3187,9 +3179,6 @@
         entry.features = features;
         entry.borderMesh = topojson.mesh(statesTopo, statesTopo.objects.states);
         entry.view = { rotate: US_ROTATE, scale: initialScale * US_SCALE_MULT };
-        for (const f of features) {
-          searchIndex.push({ label: f.properties.displayName, type: "state", feature: f });
-        }
         entry.ready = true;
       },
     });
@@ -3248,13 +3237,6 @@
           ? entry.features.filter(opts.viewFilter)
           : entry.features;
         entry.view = computeView(viewFeatures.length ? viewFeatures : entry.features);
-        for (const f of entry.features) {
-          searchIndex.push({
-            label: f.properties.displayName,
-            type: opts.searchType,
-            feature: f,
-          });
-        }
         entry.ready = true;
       };
       datasets.set(key, entry);
@@ -3733,6 +3715,7 @@
         wikiTitle: (feature) => feature.properties.displayName,
         strings: {
           wikipedia: "Wikipedia →",
+          wikipedia_short: "Wiki",
           capital: "Capital",
         },
       },
@@ -3759,6 +3742,7 @@
       // Refresh the currently shown info pane so its text/link update.
       if (selectedFeature) showInfo("Selected", selectedFeature);
       else if (mode === "info" || mode === "show-all") updateInfo();
+      buildAtlas();
     });
 
     function datasetFeatures() {
@@ -3915,6 +3899,66 @@
       const hit = datasetFeatures().find(f => d3.geoContains(f, coords));
       if (!hit) return;       // clicked open ocean with nothing selected
       selectFeature(hit);
+    }
+
+    // ---- Atlas (browsable + searchable list of the current dataset) ----
+    const atlasList = document.getElementById("atlas-list");
+    let atlasQuery = "";
+
+    function atlasSelect(feature) {
+      // Selection lives in info/show-all/tour; from quiz, drop into info.
+      if (mode !== "info" && mode !== "show-all" && mode !== "tour") setMode("info");
+      selectFeature(feature);
+      const view = computeView([feature]);
+      if (Number.isFinite(view.rotate[0]) && Number.isFinite(view.rotate[1])) {
+        animateTo(view.rotate, view.scale);
+      }
+    }
+
+    // Current dataset's features, alphabetised and filtered by the search box.
+    function atlasFilteredFeatures() {
+      const q = atlasQuery.trim().toLowerCase();
+      let features = datasetFeatures().slice()
+        .sort((a, b) => a.properties.displayName.localeCompare(b.properties.displayName));
+      if (q) features = features.filter(f => f.properties.displayName.toLowerCase().includes(q));
+      return features;
+    }
+
+    function buildAtlas() {
+      atlasList.innerHTML = "";
+      const features = atlasFilteredFeatures();
+      if (features.length === 0) {
+        const empty = document.createElement("div");
+        empty.id = "atlas-empty";
+        empty.textContent = atlasQuery ? "No matches." : "No regions loaded.";
+        atlasList.appendChild(empty);
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      for (const f of features) {
+        const row = document.createElement("div");
+        row.className = "atlas-row";
+
+        const nameBtn = document.createElement("button");
+        nameBtn.type = "button";
+        nameBtn.className = "atlas-name";
+        const flag = f.properties.flag ? f.properties.flag + " " : "";
+        nameBtn.textContent = flag + f.properties.displayName;
+        nameBtn.addEventListener("click", () => atlasSelect(f));
+
+        const wiki = document.createElement("a");
+        wiki.className = "atlas-wiki";
+        wiki.href = wikiUrlFor(f);
+        wiki.target = "_blank";
+        wiki.rel = "noopener";
+        wiki.textContent = i18n("wikipedia_short", "Wiki");
+        wiki.title = i18n("wikipedia", "Wikipedia →");
+
+        row.appendChild(nameBtn);
+        row.appendChild(wiki);
+        frag.appendChild(row);
+      }
+      atlasList.appendChild(frag);
     }
 
     function showInfoHighlight(feature) {
@@ -4179,6 +4223,7 @@
       lastInfoHit = null;
       selectedFeature = null;
       revealLayer.selectAll(".selection-hit").remove();
+      buildAtlas();
       if (mode === "quiz") rebuildPool();
       else if (mode === "tour") { stopTour(); startTour(); }
       else if (mode === "info") updateInfo();
@@ -4431,129 +4476,24 @@
       invertV = e.target.checked;
     });
 
-    // ---- Find / autocomplete ----
-    // Built lazily — countries are always indexed; subdivisions get
-    // appended when their dataset is first loaded.
-    const searchIndex = countryFeatures.map(f => ({
-      label: f.properties.displayName, type: "country", feature: f,
-    }));
-
-    const findInput = document.getElementById("find-input");
-    const findResults = document.getElementById("find-results");
-    let currentMatches = [];
-    let findIndex = -1;
-
-    function computeMatches(query) {
-      const q = query.trim().toLowerCase();
-      if (!q) return [];
-      return searchIndex
-        .filter(item => item.label.toLowerCase().includes(q))
-        .sort((a, b) => {
-          const aStarts = a.label.toLowerCase().startsWith(q);
-          const bStarts = b.label.toLowerCase().startsWith(q);
-          if (aStarts !== bStarts) return aStarts ? -1 : 1;
-          return a.label.localeCompare(b.label);
-        })
-        .slice(0, 10);
-    }
-
-    function renderFindResults() {
-      findResults.innerHTML = "";
-      if (currentMatches.length === 0) {
-        findResults.hidden = true;
-        findIndex = -1;
-        return;
-      }
-      findResults.hidden = false;
-      currentMatches.forEach((item, i) => {
-        const li = document.createElement("li");
-        if (i === findIndex) li.classList.add("active");
-        const flag = document.createElement("span");
-        flag.textContent = item.feature.properties.flag || "";
-        const name = document.createElement("span");
-        name.className = "find-name";
-        name.textContent = item.label;
-        const badge = document.createElement("span");
-        badge.className = "type-badge";
-        badge.textContent = item.type;
-        li.appendChild(flag);
-        li.appendChild(name);
-        li.appendChild(badge);
-        li.addEventListener("mousedown", (e) => {
-          e.preventDefault();
-          selectFindItem(item);
-        });
-        findResults.appendChild(li);
-      });
-    }
-
-    function selectFindItem(item) {
-      findInput.value = "";
-      currentMatches = [];
-      findIndex = -1;
-      findResults.hidden = true;
-      findResults.innerHTML = "";
-
-      // Tour mode would keep cycling and overwrite the find selection on the
-      // next tick — drop into Info so the picked feature stays highlighted.
-      if (mode === "tour") setMode("info");
-
-      const view = computeView([item.feature]);
-      if (Number.isFinite(view.rotate[0]) && Number.isFinite(view.rotate[1])) {
-        animateTo(view.rotate, view.scale);
-      }
-      revealLayer.selectAll("path").remove();
-      revealLayer.append("path")
-        .datum(item.feature)
-        .attr("d", path)
-        .attr("fill", "rgba(180, 140, 255, 0.22)")
-        .attr("stroke", "#bf94ff")
-        .attr("stroke-width", 1.5)
-        .attr("stroke-linejoin", "round");
-      showInfo("Found", item.feature);
-      if (mode === "info") lastInfoHit = null;
-    }
-
-    findInput.addEventListener("input", (e) => {
-      currentMatches = computeMatches(e.target.value);
-      findIndex = currentMatches.length > 0 ? 0 : -1;
-      renderFindResults();
+    // ---- Atlas search ----
+    // Filters the Atlas list (current dataset). Enter selects the first match.
+    const atlasSearch = document.getElementById("atlas-search");
+    atlasSearch.addEventListener("input", (e) => {
+      atlasQuery = e.target.value;
+      buildAtlas();
     });
-
-    findInput.addEventListener("keydown", (e) => {
-      if (e.key === "ArrowDown") {
-        if (currentMatches.length === 0) return;
+    atlasSearch.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
         e.preventDefault();
-        findIndex = (findIndex + 1) % currentMatches.length;
-        renderFindResults();
-        const active = findResults.querySelector("li.active");
-        if (active) active.scrollIntoView({ block: "nearest" });
-      } else if (e.key === "ArrowUp") {
-        if (currentMatches.length === 0) return;
-        e.preventDefault();
-        findIndex = (findIndex - 1 + currentMatches.length) % currentMatches.length;
-        renderFindResults();
-        const active = findResults.querySelector("li.active");
-        if (active) active.scrollIntoView({ block: "nearest" });
-      } else if (e.key === "Enter") {
-        if (findIndex >= 0 && currentMatches[findIndex]) {
-          e.preventDefault();
-          selectFindItem(currentMatches[findIndex]);
-          findInput.blur();
-        }
+        const first = atlasFilteredFeatures()[0];
+        if (first) { atlasSelect(first); atlasSearch.blur(); }
       } else if (e.key === "Escape") {
         e.preventDefault();
-        findInput.value = "";
-        currentMatches = [];
-        findIndex = -1;
-        renderFindResults();
-        findInput.blur();
-      }
-    });
-
-    document.addEventListener("click", (e) => {
-      if (!findInput.contains(e.target) && !findResults.contains(e.target)) {
-        findResults.hidden = true;
+        atlasSearch.value = "";
+        atlasQuery = "";
+        buildAtlas();
+        atlasSearch.blur();
       }
     });
 
@@ -4568,6 +4508,7 @@
     updateButtonHighlights();
     applyModeUI();
     rebuildPool();
+    buildAtlas();
   })().catch(err => {
     console.error(err);
     const loading = document.getElementById("loading");
