@@ -107,6 +107,7 @@ EN = {
     "color.correct": "Correct country",
     "opt.rivers": "Rivers",
     "opt.grid": "Long Lat Grid",
+    "opt.name_labels": "Name Labels",
     "opt.view_controls": "Show View Controls",
     "opt.focus_correct": "Focus on Correct Quiz Answer",
     "opt.reveal_duration": "Quiz Answer Duration",
@@ -116,6 +117,7 @@ EN = {
     "opt.invert_h": "Invert Horizontal Pan",
     "opt.invert_v": "Invert Vertical Pan",
     "vc.pan": "Pan",
+    "vc.spin": "Spin",
     "vc.rotate": "Rotate",
     "vc.zoom": "Zoom",
     "vc.reset": "Reset",
@@ -5561,6 +5563,41 @@ for _c, _io in _SCHEME_IO.items():
     TR[_c]["scheme.import"] = _io[1]
     TR[_c]["scheme.reset"] = _io[2]
     TR[_c]["scheme.reset_confirm"] = _io[3]
+
+# "Name Labels" options toggle.
+_NAME_LABELS = {
+    "zh": "名称标签", "es": "Etiquetas de nombres", "ar": "تسميات الأسماء",
+    "id": "Label Nama", "pt": "Rótulos de nomes", "fr": "Étiquettes de noms",
+    "ja": "名前ラベル", "ru": "Подписи названий", "de": "Namensbeschriftungen",
+    "hi": "नाम लेबल", "bn": "নাম লেবেল", "ur": "نام لیبل", "ko": "이름 라벨",
+    "vi": "Nhãn tên", "tr": "İsim Etiketleri", "it": "Etichette dei nomi",
+    "nl": "Naamlabels", "pl": "Etykiety nazw", "th": "ป้ายชื่อ",
+    "fa": "برچسب‌های نام", "uk": "Підписи назв", "cs": "Popisky názvů",
+    "ms": "Label Nama", "ro": "Etichete cu nume", "el": "Ετικέτες ονομάτων",
+    "he": "תוויות שמות", "sv": "Namnetiketter", "fil": "Mga Label ng Pangalan",
+    "ta": "பெயர் லேபிள்கள்", "hu": "Névcímkék", "da": "Navneetiketter",
+    "fi": "Nimimerkinnät", "nb": "Navneetiketter", "sk": "Štítky názvov",
+    "bg": "Етикети с имена", "sr": "Ознаке имена", "hr": "Oznake naziva",
+    "sl": "Oznake imen", "ca": "Etiquetes de noms",
+}
+for _c, _v in _NAME_LABELS.items():
+    TR[_c]["opt.name_labels"] = _v
+
+# "Spin" view-control group — rotating the globe in latitude/longitude (the
+# 4-way d-pad), distinct from "Rotate" (the roll group) in each language.
+_VC_SPIN = {
+    "zh": "转动", "es": "Girar", "ar": "إدارة", "id": "Pusingkan", "pt": "Rodar",
+    "fr": "Tourner", "ja": "回す", "ru": "Вращение", "de": "Rotieren",
+    "hi": "घुमाव", "bn": "ঘূর্ণন", "ur": "گھماؤ", "ko": "돌리기", "vi": "Quay",
+    "tr": "Çevir", "it": "Gira", "nl": "Wentelen", "pl": "Kręć", "th": "ปั่น",
+    "fa": "چرخاندن", "uk": "Обертати", "cs": "Roztočit", "ms": "Pusing",
+    "ro": "Învârte", "el": "Γύρισμα", "he": "סחרור", "sv": "Snurra",
+    "fil": "Iikot", "ta": "சுற்று", "hu": "Pörgetés", "da": "Drej",
+    "fi": "Pyöritä", "nb": "Drei", "sk": "Roztočiť", "bg": "Въртене",
+    "sr": "Окретање", "hr": "Okretanje", "sl": "Zavrti", "ca": "Rodar",
+}
+for _c, _v in _VC_SPIN.items():
+    TR[_c]["vc.spin"] = _v
 
 # __TR_INSERT__
 
