@@ -36,27 +36,12 @@ step, server, or network connection is required to run it.
 
 ## Quick start
 
-```
-# Just open the file — no install needed:
-open no-borders-geography.html        # macOS
-# or double-click it in your file manager, or drag it into a browser tab.
-```
+Go to [https://inventwithpython.com/no-borders-geography/no-borders-geography.html](https://inventwithpython.com/no-borders-geography/no-borders-geography.html)
+
+Or download the file no-borders-geography.html and open it in a browser (no install needed)
 
 If opened from a CDN-reachable network instead of `file://`, missing local data
 falls back to public CDNs automatically.
-
-## Controls
-
-| Action | Input |
-| --- | --- |
-| Spin the globe | drag, or **Q** / **E** |
-| Zoom | scroll / pinch, or **+** / **−** |
-| Pan | **WASD** / arrow keys |
-| Reset view | **0** |
-| Settings | the ⚙ button (top-right) |
-
-Touch devices also get an on-screen control pad (toggle it under **Settings →
-Options**).
 
 ## Languages
 
@@ -75,43 +60,6 @@ names are localized for the ~23 languages covered by the bundled name data;
 other languages and all subdivisions fall back to English. Wikipedia links point
 to the matching-language Wikipedia, or English when no localized name exists.
 
-## Color schemes
-
-Pick a preset (Default, Daylight, Parchment, Neon, Mono, Sunset, Forest, Arctic,
-Volcanic) or set each color by hand. Under **Settings → Colors** you can:
-
-- **Export** the current palette as a JSON file.
-- **Import** a palette from a JSON file.
-- **Reset** back to the Default scheme (with confirmation).
-
-The exported format:
-
-```json
-{
-  "type": "no-borders-color-scheme",
-  "version": 1,
-  "colors": {
-    "bg": "#050912",
-    "land": "#3d6b48",
-    "ocean": "#16335a",
-    "rivers": "#78aae6",
-    "highlight": "#7ec8ff",
-    "clicked": "#ffd54a",
-    "correct": "#7adba0"
-  }
-}
-```
-
-## Project structure
-
-| Path | Purpose |
-| --- | --- |
-| `no-borders-geography.html` | The quiz app (self-contained, with data inlined). |
-| `simple-mercator-world-map.html`, `simple-robinson-world-map.html` | Standalone flat-map variants. |
-| `*.geojson`, `*.json` | Source geographic data (countries, subdivisions, lakes, rivers). |
-| `build_i18n.py` | Builds the translation table and injects it into the app. |
-| `inline_data.py` | Inlines the base JSON data into the HTML so it runs offline. |
-| `generate_geo_info.py` | Regenerates `_geo_info.md`, a listing of every region's name, flag, and capital. |
 
 ### Regenerating / editing
 
