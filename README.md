@@ -1,6 +1,6 @@
 # No Borders Geography Quiz
 
-**🌐 Play it online: <https://inventwithpython.com/no-borders-geography.html>**
+**🌐 Play it online: <https://inventwithpython.com/no-borders-geography/no-borders-geography.html>**
 
 An interactive, borderless 3D globe for learning world geography. Spin and zoom
 a clean globe (no political borders drawn by default) and identify countries,
